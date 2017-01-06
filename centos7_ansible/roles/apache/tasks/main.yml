@@ -1,0 +1,38 @@
+# Role: ansible-apache
+# Author: Aurélien FOUCRET
+# Description: Main tasks file for the role
+
+---
+# Include per-environment variables
+- include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+        - '{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml'           # CentOS-6.5
+        - '{{ ansible_os_family }}-{{ ansible_distribution_version }}.yml'              # RedHat-6.5
+        - '{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml'     # CentOS-6
+        - '{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml'        # RedHat-6
+        - '{{ ansible_distribution }}.yml'                                              # CentOS
+        - '{{ ansible_os_family }}.yml'                                                 # RedHat
+        - 'default.yml'
+      paths: '../vars'
+
+- include: install.yml
+
+- include: "{{ ansible_os_family }}.yml"
+
+- name: main | Restart Apache now to avoid port conflicts in ulterior roles
+  meta: flush_handlers
+
+- name: main | Ensure Apache service is enabled
+  service:
+    name: "{{ apache2_service_name }}"
+    enabled: true
+
+- include: security2.yml
+  when: '"security2" in apache2_all_modules'
+
+- name: main | Create apache vhost
+  tags: create_vhosts
+  include: vhosts.yml vhost_options="{{ item.value }}" vhost_name="{{ item.key }}"
+  with_dict: "{{ apache2_vhosts }}"
+  when: apache2_vhosts|length > 0

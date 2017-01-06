@@ -1,0 +1,26 @@
+---
+- name: selinux | Install NRPE
+  package:
+    name:  libselinux-python
+    state: installed
+
+- name: selinux | Configure NRPE
+  copy:
+    src:   "var/tmp/{{ item }}"
+    dest:  /var/tmp/
+    owner: root
+    group: root
+  with_items:
+    - nrpe.pp
+    - nrpe-named.pp
+  register: nrpe_module
+
+- name: selinux | Check SELinux module
+  shell: "semodule -l | grep -q ^nrpe && echo found || echo notfound"
+  changed_when: false
+  register: nrpe_semod
+
+- name: selinux | Apply SELinux module
+  script: var/tmp/se_nrpe.sh
+  when: "'notfound' in nrpe_semod.stdout or nrpe_module.changed"
+  notify: Restart NRPE

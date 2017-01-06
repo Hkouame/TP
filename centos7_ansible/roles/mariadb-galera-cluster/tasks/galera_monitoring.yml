@@ -1,0 +1,42 @@
+---
+- name: galera_monitoring | Deploy monitor script for galera
+  copy:
+    src:    "usr/local/bin/{{ galera_monitor_script_name }}"
+    dest:   "{{ galera_monitor_script_path }}/{{ galera_monitor_script_name }}"
+    owner:  root
+    group:  root
+    mode:   0755
+  notify: restart xinetd
+
+- name: galera_monitoring | Set services in /etc/services
+  replace:
+    dest:    /etc/services
+    regexp:  '^\S+(\s+9200/tcp.*)'
+    replace: '{{galera_monitor_script_name}}\1'
+
+- name: galera_monitoring | Install xinetd
+  package:
+    name:  xinetd
+    state: present
+
+- name: galera_monitoring | Ensure xinetd is enabled
+  service:
+    name:  xinetd
+    state: started
+
+- name: galera_monitoring | Deploy xinetd configuration
+  template:
+    src:    "etc/xinetd.d/{{ galera_monitor_script_name }}.j2"
+    dest:   "/etc/xinetd.d/{{ galera_monitor_script_name }}"
+    owner:  root
+    group:  root
+    mode:   0600
+  notify: restart xinetd
+
+- name: galera_monitoring | Configure firewall port
+  firewalld:
+    port:      9200/tcp
+    state:     enabled
+    permanent: true
+    immediate: true
+

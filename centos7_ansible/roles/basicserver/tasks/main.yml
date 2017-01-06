@@ -1,0 +1,41 @@
+---
+
+- include: "{{ ansible_os_family }}.yml"
+
+- name: Users | copy configuration templates
+  template: src={{ item.src }} dest={{ item.dest }}
+  with_items:
+    - src: "bashrc-root.j2"           
+      dest: "/root/.bashrc"
+
+- include: generate_hosts.yml
+  when: generate_hosts_from_inventory == true
+
+- name: setup sudoers
+  template: src=sudoers.j2 dest=/etc/sudoers.d/ansible-basicserver
+  when: install_sudoers
+
+
+- name: Users | Create users
+  user:
+    name: "{{ item.login }}"
+    group: "{{ item.group|default(omit) }}"
+    state: "{{ item.state|default(omit) }}"
+  tags: users
+  with_items:
+    - "{{ users|default([]) }}"
+
+- name: Users | Add ssh users keys
+  tags: sshkeys
+  ignore_errors: yes
+  authorized_key:
+      user: "{{ item.0.login }}"
+      key: "{{ item.1|default(omit) }}"
+  with_subelements:
+    - "{{ users|default([]) }}"
+    - "sshkey"
+  when: item.0.state != 'absent'
+
+- name: copy profiled
+  template: src={{ profiled_template }} dest=/etc/profile.d/ansible-basicserver.sh
+  when: "profiled_template is defined"

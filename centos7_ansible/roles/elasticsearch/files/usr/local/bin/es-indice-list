@@ -1,0 +1,6 @@
+#!/bin/bash
+
+ES_SERVER="127.0.0.1"
+
+# List indices
+curl -s -XGET "http://${ES_SERVER}:9200/_cat/indices" | awk '{print $3}' | sort -n

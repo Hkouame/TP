@@ -1,0 +1,1 @@
+{{ ansible_fqdn }};{{ ansible_default_ipv4.address}};;;{%- for app in centreon_app %}{% if app.name in group_names %}{{ app.template }}|{% endif %}{% endfor %};{{ centreon_hg | join("|") }};{{ centreon_poller }}

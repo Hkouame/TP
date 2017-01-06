@@ -1,0 +1,9 @@
+# SELinux global tools
+- name: "Install SElinux tools"
+  package: name=policycoreutils-python
+
+- include: bacula.yml
+  when: deploy_baculafd_policy
+
+- include: nrpe.yml
+  when: deploy_nrpe_policy

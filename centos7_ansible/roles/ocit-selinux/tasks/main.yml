@@ -1,0 +1,3 @@
+---
+# tasks file for ocit-base-selinux
+- include: "{{ ansible_os_family}}.yml"

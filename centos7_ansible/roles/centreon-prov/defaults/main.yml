@@ -1,0 +1,51 @@
+---
+# Variables for centreon serveur provisionning
+centreon_server: 127.0.0.1
+centreon_poller: Central
+centreon_clapi_bin:  "/usr/bin/centreon"
+centreon_clapi_conf: "/etc/centreon/clapi.conf"
+centreon_clapi_user: "admin"
+centreon_clapi_pass: "centreon"
+centreon_poller_exclude: ""
+centreon_tpl:
+  - name: "ovh"
+    hostgroup: "Site-OVH"
+  - name: "rp"
+    hostgroup: "Site-RP"
+  - name: "smile"
+    hostgroup: "Site-Smile"
+centreon_app:
+  - name: 'centreon-agent'
+    template: "Servers-Linux"
+  - name: 'bind9'
+    template: "Servers-DNS"
+  - name: 'bacula::director'
+    template: "Servers-Bacula"
+  - name: 'apache2'
+    template: "Servers-Apache"
+  - name: 'varnish'
+    template: "Servers-Varnish"
+  - name: 'tomcat'
+    template: "Servers-Tomcat"
+  - name: 'drbd'
+    template: 'Servers-DRBD'
+  - name: 'galera'
+    template: 'Servers-Galera'
+  - name: 'haproxy'
+    template: 'Servers-HAProxy'
+  - name: 'keepalived'
+    template: 'Servers-KeepAlived'
+  - name: 'asterisk'
+    template: 'Servers-Asterisk'
+  - name: 'freeradius'
+    template: 'Servers-FreeRadius'
+  - name: 'elasticsearch'
+    template: 'Servers-ElasticSearch'
+  - name: 'logstash'
+    template: 'Servers-Logstash'
+  - name: 'mariadb'
+    template: 'Servers-MariaDB'
+  - name: 'kafka'
+    template: 'Servers-Kafka'
+  - name: 'keepalived'
+    template: 'Servers-KeepAlived'

@@ -1,0 +1,23 @@
+---
+- name: "Install Rabbitmq"
+  apt: name=rabbitmq-server state=present
+  tags:
+      - install
+
+#- name: "Setup Varnish configuration"
+#  template: src={{ item.src }} dest={{ item.dest }}
+#  with_items:
+#      - src: "{{ varnish_defaults_template }}"
+#        dest: "/etc/default/varnish"
+#      - src: "{{ varnish_vcl_template }}"
+#        dest: "/etc/varnish/{{ varnish_vcl_name }}.vcl"
+#  notify:
+#    - "Reload Varnish"
+#  tags:
+#    - install
+#    - update_config
+
+- name: "Run Rabbitmq"
+  service: name=rabbitmq-server state=running enabled=true
+  tags:
+      - install

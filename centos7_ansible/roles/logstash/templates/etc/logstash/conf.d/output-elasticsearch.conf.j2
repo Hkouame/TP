@@ -1,0 +1,10 @@
+# Output to elasticsearch
+output {
+  elasticsearch {
+    hosts => [{% for item in ls_elasticsearch_hosts -%} "{{ item }}" {%- if not loop.last -%}, {% endif -%} {%- endfor %}]
+    flush_size => 80000
+    {% if ls_elasticsearch_hosts|length > 1 -%}
+    workers => {{ ls_elasticsearch_hosts|length }} 
+    {% endif -%}
+  }
+}

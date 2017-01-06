@@ -1,0 +1,51 @@
+---
+- name: configure_monitoring | adding monitoring db user for monitoring
+  mysql_user:
+    name: "{{ monitoring_db_user }}"
+    password: "{{ monitoring_db_password }}"
+    host: "{{ monitoring_server }}"
+    priv: "*.*:SUPER,PROCESS"
+    state: "present"
+  run_once: true
+  when: >
+        inventory_hostname == mariadb_master_node and
+        monitoring_server is defined
+
+- name: configure_monitoring | adding monitoring db user for monitoring
+  mysql_user:
+    name: "{{ monitoring_db_user }}"
+    password: "{{ monitoring_db_password }}"
+    host: "{{ monitoring_server_fqdn }}"
+    state: "present"
+  run_once: true
+  when: >
+        inventory_hostname == mariadb_master_node and
+        monitoring_server_fqdn is defined
+
+- name: configure_monitoring | adding monitoring db user for monitoring
+  mysql_user:
+    name: "{{ monitoring_db_user }}"
+    password: "{{ monitoring_db_password }}"
+    host: "{{ item }}"
+    state: "present"
+  run_once: true
+  with_items:
+    - 127.0.0.1
+    - localhost
+  when: >
+        inventory_hostname == mariadb_master_node
+
+- name: configure_monitoring | create auth directory
+  file:
+    path: /etc/mysql/auth.d
+    state: directory
+    recurse: true
+
+- name: configure_monitoring | create monitoring mysql auth file
+  template:
+    src: "etc/my.cnf.d/nagios.cnf.j2"
+    dest: "/etc/mysql/auth.d/nagios.cnf"
+    owner: "root"
+    group: "root"
+    mode: 0644
+  when: ansible_os_family == "RedHat"

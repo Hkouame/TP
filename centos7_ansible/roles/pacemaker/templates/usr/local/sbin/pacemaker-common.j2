@@ -1,0 +1,64 @@
+#!/bin/bash
+
+error() {
+    echo -e "\n\e[1;31m$@\e[0;39m"
+}
+
+warning() {
+    echo -ne "\n\e[1;33m$@\e[0;39m"
+}
+
+info() {
+    echo -ne "$@"
+}
+
+display() {
+    echo -ne "\e[1;32m$@\e[0;39m"
+}
+
+display_action_status() {
+    if [ "$?" -gt "0" ]; then
+        warning "\r[KO]\n"
+        if [ "$msg" != "" ]; then
+            warning "$msg\n"
+        fi
+        if [ "$1" == "fatal" ]; then 
+            exit 1
+        fi
+        return 1
+    else
+        display "\r[OK]\n"
+        return 0
+    fi
+}
+
+confirmAction() {
+    read ans
+    case "$ans" in
+        "Y" | "y" | "yes" | "Yes")
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+pcmk_init_cluster() {
+    local NODE_LIST=$1
+
+    # Initializing cluster
+    info "   * Initializing cluster"
+    pcs cluster auth ${NODE_LIST} -u hacluster -p {{ pcmk_hacluster_passwd }} > /dev/null 2>&1 && \
+    pcs cluster setup --token 20000 --name {{ pcmk_cluster_name }} ${NODE_LIST} --force > /dev/null 2>&1 && \
+    pcs cluster start --all > /dev/null 2>&1 && \
+    sleep 5
+    display_action_status fatal
+
+    # Settings corosync paramater
+    info "   * Settings corosync properties"
+    pcs property set stonith-enabled=false && \
+    pcs resource defaults resource-stickiness=100 && \
+    sleep 20
+    display_action_status fatal
+}

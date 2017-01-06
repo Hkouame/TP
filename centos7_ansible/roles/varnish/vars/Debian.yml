@@ -1,0 +1,3 @@
+---
+varnish_package_name: varnish
+varnish_defaults_file: /etc/default/varnish

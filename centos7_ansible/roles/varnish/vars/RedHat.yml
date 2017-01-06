@@ -1,0 +1,4 @@
+---
+varnish_package_name: varnish
+varnish_defaults_file: /etc/sysconfig/varnish
+varnish_params_file: /etc/varnish/varnish.params

@@ -1,0 +1,3 @@
+jessie.lxc
+wheezy.lxc
+centos6.lxc varnish_use_repo="3.0"

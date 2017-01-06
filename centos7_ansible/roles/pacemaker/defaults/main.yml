@@ -1,0 +1,27 @@
+---
+# defaults file for pacemaker
+pcmk_cluster_name: pacemaker
+pcmk_hacluster_passwd: changeme
+pcmk_hacluster_passwd_sha: '$6$DLCEHvTVX/.JHhj4$miKcrARx2YV/j43ijd5YJgGZIv/mlkGFMUQHkMuyQr1NC54Elo6gy1t67.8deMnAT22ZEpwRhykgPD.8GIVrZ1' # mkpasswd --method=SHA-512
+pcmk_hosts:
+pcmk_fw_enable: true
+#pcmk_drbd_rsc:
+#  rsc_name: data
+#  mnt_point: /srv
+#  dir:
+#    - src_dir: /var/lib/mysql
+#      dst_dir: /srv/mysql
+#    - src_dir: /var/www
+#      dst_dir: /srv/www
+#pcmk_vip_rsc: 
+#  - vip1:
+#    interface: eth0
+#    address: 192.168.122.100 
+#    netmask: 24
+#  - vip2:
+#    interface: eth1
+#    address: 172.16.122.100 
+#    netmask: 24
+#pcmk_svc_rsc:
+#  - mariadb
+#  - httpd

@@ -1,0 +1,91 @@
+---
+# tasks file for elasticsearch
+# Include per-environment variables
+- include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+        - '{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml'           # CentOS-6.5
+        - '{{ ansible_os_family }}-{{ ansible_distribution_version }}.yml'              # RedHat-6.5
+        - '{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml'     # CentOS-6
+        - '{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml'        # RedHat-6
+        - '{{ ansible_distribution }}.yml'                                              # CentOS
+        - '{{ ansible_os_family }}.yml'                                                 # RedHat
+        - 'main.yml'
+      paths: '../vars'
+
+- name: "Create tomcat group"
+  group: name="{{tomcat_group}}"
+
+- name: "Create tomcat user"
+  user: name="{{tomcat_user}}" createhome=no group="{{tomcat_group}}" home="{{tomcat_root_dir}}"
+
+- stat: path={{tomcat_install_dir}}/apache-tomcat-{{tomcat_version}}
+  register: tomcat_dir
+
+- name: "Download extract tomcat"
+  unarchive: copy=no src="{{tomcat_download_url}}" dest="{{tomcat_install_dir}}" keep_newer=yes
+  when: tomcat_dir.stat.exists == false
+
+- name: "Create home directory symlink"
+  file: src={{tomcat_install_dir}}/apache-tomcat-{{tomcat_version}} path={{tomcat_root_dir}} state=link
+
+- name: "Download tomcat extras libraries"
+  get_url: url="{{tomcat_libraries_download_url}}/{{item.name}}" dest={{tomcat_root_dir}}/{{item.dir}}/ 
+  with_items: '{{tomcat_libraries}}'
+
+- name: "Remove docs apps"
+  file: path={{tomcat_root_dir}}/webapps/docs state=absent
+
+- name: "Remove examples apps"
+  file: path={{tomcat_root_dir}}/webapps/examples state=absent
+
+- name: "Remove logging.properties"
+  file: path={{tomcat_root_dir}}/conf/logging.properties state=absent
+
+- name: "Add logback libraries"
+  copy: src=tomcat/lib dest={{tomcat_root_dir}}
+
+- name: "Add tomcat environment file"
+  template: src=tomcat/bin/setenv.sh dest={{tomcat_root_dir}}/bin/setenv.sh mode=0755
+
+- name: "Add tomcat configuration files - templates"
+  template: src=tomcat/conf/{{item}} dest={{tomcat_root_dir}}/conf/{{item}}
+  with_items:
+    - server.xml
+    - tomcat-users.xml
+  notify:
+    - "Restart Tomcat"
+
+- name: "Add tomcat configuration files"
+  copy: src=tomcat/conf/{{item}} dest={{tomcat_root_dir}}/conf/{{item}}
+  with_items:
+    - logback.xml
+    - logback-access.xml
+  notify:
+    - "Restart Tomcat"
+
+- name: "Change tomcat directory permissions"
+  file: path={{tomcat_install_dir}}/apache-tomcat-{{tomcat_version}} owner="{{tomcat_user}}" group="{{tomcat_group}}" state=directory recurse=yes
+
+- name: "Add tomcat systemd unit file"
+  template: src=systemd/tomcat.service dest=/usr/lib/systemd/system/tomcat.service owner=root group=root
+  notify:
+    - "Systemctl daemon-reload"
+
+- name: "Start tomcat"
+  service: name=tomcat state=started enabled=yes
+
+- name: "Add firewalld service file"
+  template: src=firewalld/tomcat.xml dest=/usr/lib/firewalld/services/tomcat.xml owner=root group=root
+  register: firewallsvc
+
+- name: "Restart Firewalld if service file changed"
+  service: name="firewalld" state=restarted
+  when: firewallsvc.changed
+
+- name: "Setting firewall rules"
+  firewalld:
+    service:   tomcat
+    permanent: true
+    state:     enabled
+    immediate: yes

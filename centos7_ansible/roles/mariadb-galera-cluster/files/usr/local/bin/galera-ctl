@@ -1,0 +1,88 @@
+#!/bin/bash
+# Quick script to get galera status, and start clusters.
+
+MYSQL_DATADIR=$(grep datadir /etc/mysql/my.cnf 2> /dev/null | cut -d = -f 2 2> /dev/null)
+
+gctl_status() {
+  mysql -NBe "show status like '${1:-wsrep_%}';" | column -t
+}
+
+gctl_join() {
+  wsrep_donor_cmdline=''
+  if [ "$1" != "" ]; then
+    wsrep_donor_cmdline="--wsrep_sst_donor=$1"
+  fi
+  service mysql start $wsrep_donor_cmdline
+}
+
+gctl_fence() {
+  gctl_stop
+  service mysql start --wsrep_cluster_address='dummy:///'
+}
+
+gctl_unfence() {
+  gctl_stop
+  sleep 3
+  gctl_join
+}
+
+gctl_create() {
+  command -v galera_new_cluster > /dev/null && \
+  galera_new_cluster || \
+  service mysql start --wsrep-new-cluster
+}
+
+gctl_stop() {
+  service mysql stop
+}
+
+gctl_reset() {
+  CLUSTER_SIZE=$(gctl_status wsrep_cluster_size | cut -f 2)
+   if [ "$CLUSTER_SIZE" == "1" ]
+   then
+     echo "WARNING: There is only ONE node in the cluster. Joining after this reset may fail."
+   fi
+
+   gctl_stop
+   rm -v $MYSQL_DATADIR/grastate.dat
+   gctl_join $1
+}
+
+gctl_tailf(){
+  tail -f $MYSQL_DATADIR/$HOSTNAME.err
+}
+
+usage(){
+  echo "Usage: $0 status|create|join|reset|stop"
+  echo "  * status:   Get the Galera cluster status"
+  echo "  * stop:     Stop the MySQL service on this node."
+  echo "  * join:     Join the Galera cluster. At least one node of the cluster must be running."
+  echo "              You can specify a node name/address as first argument "
+  echo "              if you want to use it as a donor."
+  echo "  * create:   Create a new Galera cluster. Use this if all the node are currently down."
+  echo "  * reset:    Request a full SST from the cluster."
+  echo "  * fence:    Remove this node from cluster."
+  echo "  * unfence:  Re-add this node in cluster."
+  echo "  * tailf:    View galera log file."
+}
+
+case "$1" in
+  "status")
+    gctl_status $2 ;;
+  "join") 
+    gctl_join $2 ;;
+  "create")
+    gctl_create ;;
+  "stop")
+    gctl_stop ;;
+  "reset")
+    gctl_reset $2;;
+  "tailf")
+    gctl_tailf ;;
+  "fence")
+    gctl_fence ;;
+  "unfence")
+    gctl_unfence ;;
+  *)
+    usage ;;
+esac

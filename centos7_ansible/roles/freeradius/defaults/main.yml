@@ -1,0 +1,15 @@
+---
+# defaults file for freeradius
+freerad_deploy_admin_scripts: true
+freerad_enable_controlsocket: true
+freerad_enable_serverstatus: true
+freerad_client_ipaddr: 127.0.0.1
+freerad_client_secret: testing123
+freerad_client_vhost: default
+
+# Log destination files, syslog, stdout, stderr
+freerad_log_destination: "syslog"
+freerad_server_thread_start: 32
+freerad_server_thread_max: 64
+freerad_server_thread_minspare: 10
+freerad_server_thread_maxspare: 20

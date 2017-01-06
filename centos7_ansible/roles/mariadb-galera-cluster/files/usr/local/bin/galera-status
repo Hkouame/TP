@@ -1,0 +1,74 @@
+#!/usr/bin/env python
+
+from __future__ import print_function
+
+import _mysql
+import _mysql_exceptions
+
+try:
+  db = _mysql.connect(host='localhost', read_default_file='/etc/mysql/auth.d/status.cnf', connect_timeout=1)
+except _mysql_exceptions.OperationalError  :
+  print('ERROR: Cannot connect to local MySQL instance.')
+  exit(1)
+
+def get(query) :
+  db.query(query)
+  results = db.store_result().fetch_row(maxrows=0)
+
+  if len(results) == 1 :
+    return results[0][1]
+
+  ret = {} 
+
+  for index, value in results :
+    ret[index] = value
+
+  return ret
+
+data = [ [
+  'node', 'cname', 'cstate', 'cver', 'csize', 'nstate', 'sendq', 'recvq', 'send', 'recv', 'sendb', 'recvb', 'paused', 'sentfc', 'lcf', 'bfa'
+] ]
+
+lengths = [ 0 ] * len(data[0])
+
+incoming_addresses = get('SHOW STATUS LIKE "wsrep_incoming_addresses"').split(',')
+db.close()
+
+for db in incoming_addresses :
+  if db:
+    try :
+      db = _mysql.connect(host=db.split(':')[0], read_default_file='/etc/mysql/auth.d/status.cnf', connect_timeout=1)
+  
+      variables = get('SHOW VARIABLES LIKE "wsrep_%"')
+      status = get('SHOW STATUS LIKE "wsrep_%"')
+  
+      data.append([
+        variables['wsrep_node_name'],
+        variables['wsrep_cluster_name'],
+        status['wsrep_cluster_status'],                            # 4 = Synced
+        status['wsrep_cluster_conf_id'],                           # Increments on cluster's topology change
+        status['wsrep_cluster_size'],
+        status['wsrep_ready'],                                     # ON when replication is started
+        status['wsrep_local_send_queue'],                          # High values means trouble sending writesets
+        status['wsrep_local_recv_queue'],                          # High values means trouvle applying writesets locally
+        status['wsrep_replicated'],                                # Number of writesets sent to the cluster
+        status['wsrep_received'],                                  # Number of writesets received from the cluster
+        status['wsrep_replicated_bytes'],                          # Number of bytes sent to the cluster
+        status['wsrep_received_bytes'],                            # Number of bytes received from the cluster
+        str(round(float(status['wsrep_flow_control_paused']), 2)), # Time ratio the node has spent paused by Flow Control
+        status['wsrep_flow_control_sent'],                         # Number of FC_PAUSE sent to the cluster
+        status['wsrep_local_cert_failures'],
+        status['wsrep_local_bf_aborts']
+        ])
+    except _mysql_exceptions.OperationalError :
+      pass
+
+for host in data :
+  for index, variable in enumerate(host) :
+    if len(str(variable)) > lengths[index] : lengths[index] = len(str(variable))
+
+for host in data :
+  for index, variable in enumerate(host) :
+    print(variable.ljust(lengths[index] + 2), end='')
+
+  print()

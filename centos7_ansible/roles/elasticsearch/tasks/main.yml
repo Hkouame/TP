@@ -1,0 +1,108 @@
+---
+# tasks file for elasticsearch
+# Include per-environment variables
+- include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+        - '{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml'           # CentOS-6.5
+        - '{{ ansible_os_family }}-{{ ansible_distribution_version }}.yml'              # RedHat-6.5
+        - '{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml'     # CentOS-6
+        - '{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml'        # RedHat-6
+        - '{{ ansible_distribution }}.yml'                                              # CentOS
+        - '{{ ansible_os_family }}.yml'                                                 # RedHat
+        - 'main.yml'
+      paths: '../vars'
+
+- include: "{{ ansible_os_family}}.yml"
+
+- include: firewall.yml
+  when: firewall_setup == True
+
+- name: main | Set virtual memory
+  sysctl:
+   name:  vm.max_map_count
+   value:  "{{ vm_max_map_count }}"
+   state:  present
+
+- name: main | Set swappiness
+  sysctl:
+   name:  vm.swappiness
+   value: 1
+   state: present
+
+- name: main | Install package
+  package:
+   name: elasticsearch
+
+- name: main | Install curator
+  package:
+   name: python-elasticsearch-curator
+  when: es_install_curator == true
+
+- include: admin_script.yml
+  when: es_install_admin_scripts == true
+
+- include: prompt_script.yml
+  when: es_install_prompt_scripts == true
+  tags:
+   - prompt_scripts
+
+- name: main | Create directory
+  file:
+   path:  "{{ item }}"
+   state: directory
+   owner: elasticsearch
+   group: elasticsearch
+   mode:  0755
+  with_items:
+    - '{{es_path_data}}'
+    - '{{es_path_logs}}'
+    - '{{es_path_repo}}'
+
+- name: main | Deploy configuration file
+  template:
+   src:     "{{ item.src }}"
+   dest:    "{{ item.dest }}"
+   owner:   root
+   group:   elasticsearch
+   mode:    0750
+   backup:  yes
+  with_items:
+    - src: elasticsearch.yml.j2
+      dest: /etc/elasticsearch/elasticsearch.yml
+    - src: logging.yml.j2
+      dest: /etc/elasticsearch/logging.yml
+    - src: elasticsearch.daemon.j2
+      dest: '{{ es_daemon_conf }}'
+  notify:
+    - "Restart Elasticsearch"
+
+- name: main | Set max open files
+  ini_file:
+   dest:     /usr/lib/systemd/system/elasticsearch.service
+   section:  Service
+   option:   "{{ item.option }}"
+   value:    "{{ item.value }}"
+  with_items:
+    - option: LimitNOFILE
+      value: '{{ es_max_openfiles }}'
+    - option: LimitMEMLOCK
+      value: infinity
+  when: ansible_service_mgr == 'systemd'
+  notify:
+    - "Restart Elasticsearch"
+    - "Systemctl daemon-reload"
+
+- name: main | Start and enable service
+  service:
+   name: elasticsearch
+   state: started
+   enabled: yes
+
+- name: main | Install plugins
+  command: "{{ es_plugin_bin }} {{ es_plugin_inst_opt }} {{ item }} -DproxyHost={{ es_proxy_host }} -DproxyPort={{ es_proxy_port }}"
+  register: es_plugin_result
+  with_items: '{{ es_plugins }}'
+  changed_when: "'es_plugin_result.rc' == 0"
+  failed_when: "es_plugin_result.rc != 0 and not 'already exists' in es_plugin_result.stdout"
+  ignore_errors: yes

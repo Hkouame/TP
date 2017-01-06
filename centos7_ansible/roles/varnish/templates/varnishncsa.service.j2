@@ -1,0 +1,37 @@
+[Unit]
+Description=Varnish HTTP accelerator log daemon
+After=varnish.service
+
+[Service]
+{% if varnish_use_repo == "4.1" %}
+RuntimeDirectory=varnishncsa
+Type=forking
+PIDFile=/run/varnishncsa/varnishncsa.pid
+User=varnishlog
+Group=varnish
+{% else %}
+User=varnishlog
+{% endif %}
+
+{% if varnish_forwarded_ip_in_logs %}
+{% if varnish_use_repo == "4.1" %}
+Environment="LOG_FORMAT=%{X-Forwarded-For}i %%l %%u %%t \"%%r\" %%s %%b \"%{Referer}i\" \"%{User-agent}i\" %T %{Varnish:hitmiss}x"
+ExecStart=/usr/bin/varnishncsa -a -w /var/log/varnish/varnishncsa.log -D -P /run/varnishncsa/varnishncsa.pid -F ${LOG_FORMAT}
+{% else %}
+Environment="LOG_FORMAT=%{X-Forwarded-For}i %%l %%u %%t \"%%r\" %%s %%b \"%{Referer}i\" \"%{User-agent}i\" %T %{Varnish:hitmiss}x"
+ExecStart=/usr/bin/varnishncsa -a -w /var/log/varnish/varnishncsa.log -F ${LOG_FORMAT}
+{% endif%}
+{% else %}
+{% if varnish_use_repo == "4.1" %}
+Environment="LOG_FORMAT=%h %%l %%u %%t \"%%r\" %%s %%b \"%{Referer}i\" \"%{User-agent}i\" %T %{Varnish:hitmiss}x"
+ExecStart=/usr/bin/varnishncsa -a -w /var/log/varnish/varnishncsa.log -D -P /run/varnishncsa/varnishncsa.pid -F ${LOG_FORMAT}
+{% else %}
+Environment="LOG_FORMAT=%h %%l %%u %%t \"%%r\" %%s %%b \"%{Referer}i\" \"%{User-agent}i\" %T %{Varnish:hitmiss}x"
+ExecStart=/usr/bin/varnishncsa -a -w /var/log/varnish/varnishncsa.log -F ${LOG_FORMAT}
+{% endif %}
+{% endif %}
+
+ExecReload=/bin/kill -HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target

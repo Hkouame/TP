@@ -1,0 +1,7 @@
+{% set _mydict = php_default_settings_all.copy() %}
+{% set __dummy = _mydict.update(php_default_settings_cli) %}
+{% set __dummy = _mydict.update(php_settings_all) %}
+{% set __dummy = _mydict.update(php_settings_cli) %}
+{% for key, value in _mydict|dictsort %}
+{{key}} = {{value}}
+{% endfor %}

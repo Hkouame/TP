@@ -1,0 +1,4 @@
+---
+snmpd_community: public
+snmpd_allow_clients:
+  - 127.0.0.1

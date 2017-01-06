@@ -1,0 +1,13 @@
+#!/bin/bash
+
+FILTER="Started $(hostname)"
+STATE=$(/usr/sbin/crm_mon -1 | grep "${FILTER}" | wc -l)
+
+if [ $STATE -ge 1 ]
+then
+  echo '[master]'
+else
+  echo '[slave]'
+fi
+
+exit 0

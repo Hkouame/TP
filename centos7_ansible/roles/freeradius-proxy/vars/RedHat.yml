@@ -1,0 +1,2 @@
+freerad_service_name: radiusd
+freerad_confdir: /etc/raddb

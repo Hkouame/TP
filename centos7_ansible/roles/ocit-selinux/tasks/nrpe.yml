@@ -1,0 +1,34 @@
+# NRPE
+- name: nrpe | Configure NRPE
+  copy:
+    src:   "{{item}}"
+    dest:  /var/tmp/
+    owner: root
+    group: root
+  with_items:
+    - nrpe.pp
+    - nrpe-named.pp
+  register: nrpe_module
+
+- name: nrpe | Check SELinux module
+  shell: "semodule -l | grep -q ^nrpe && echo found || echo notfound"
+  changed_when: false
+  register: nrpe_semod
+
+- name: nrpe | Apply SELinux module
+  script: se_nrpe.sh
+  when: "'notfound' in nrpe_semod.stdout or nrpe_module.changed"
+
+- name: nrpe | Configuration firewall rules
+  firewalld:
+    port:      5666/tcp
+    permanent: true
+    state:     enabled
+    immediate: yes
+
+- name: nrpe | Restart service
+  service:
+    name:    nrpe
+    state:   restarted
+    enabled: yes
+  when: "'notfound' in nrpe_semod.stdout or nrpe_module.changed"

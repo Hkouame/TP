@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+nodeid=$(curl -s http://localhost:9200/_nodes/_local | jq --raw-output '.nodes|keys[]')
+masternode=$(curl -s http://localhost:9200/_cluster/state/master_node | jq --raw-output '.master_node')
+if [[ $nodeid == $masternode ]]; then
+      echo "[es:master]"
+else      
+      echo "[es:slave]"
+fi
+
+

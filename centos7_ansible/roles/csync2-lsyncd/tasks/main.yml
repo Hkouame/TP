@@ -1,0 +1,130 @@
+---
+- include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+        - '{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml'           # CentOS-6.5
+        - '{{ ansible_os_family }}-{{ ansible_distribution_version }}.yml'              # RedHat-6.5
+        - '{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml'     # CentOS-6
+        - '{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml'        # RedHat-6
+        - '{{ ansible_distribution }}.yml'                                              # CentOS
+        - '{{ ansible_os_family }}.yml'                                                 # RedHat
+        - 'main.yml'
+      paths: '../vars'
+  tags: config
+
+- include: "{{ ansible_os_family }}.yml"
+
+- name: main | Install csync2 package
+  package:
+    name:  csync2
+    state: installed
+    update_cache: yes
+
+- name: main | Install lsyncd package
+  package:
+    name:  lsyncd
+    state: installed
+  when: lsyncd_enabled == true
+
+- name: main | Deploy lsyncd logrotate
+  template:
+    src:  logrotate.d.lsyncd.j2
+    dest: /etc/logrotate.d/lsyncd
+  when: lsyncd_enabled == true
+
+- name: main | Create lsyncd folders
+  file:
+    dest: "{{ lsyncd_log_dir }}"
+    state: directory
+  when: lsyncd_enabled == true
+
+- name: main | Enable service csync2
+  service:
+    name:    "{{ csync2_service }}"
+    enabled: yes
+
+- name: main | Enable service lsyncd
+  service:
+    name:    lsyncd
+    enabled: yes
+  when: lsyncd_enabled == true
+
+- name: main | Create csync2 backup dir
+  file:
+    path:    "{{ csync2_backup_folder }}"
+    state:   directory
+    owner:   root
+    group:   root
+    mode:    0750
+    recurse: yes
+
+- include: generate_keys.yml
+
+- name: main | Deploy csync2 config per group
+  include: "csync2_cfg.yml csync2_group=[{{ item }}]"
+  with_items:
+    - "{{ csync2_groups }}"
+  when: csync2_config_per_group == true
+  tags: config
+
+- name: main | Set variables
+  set_fact:
+    csync2_group: "{{ csync2_groups }}"
+  when: csync2_config_per_group == false
+  tags: config
+
+- name: main | Deploy all csync2 config in one file
+  template:
+    src:   csync2.cfg.j2
+    dest:  "{{ csync2_conf_dir }}/csync2.cfg" 
+    owner: root
+    group: root
+    mode:  0640
+  when: csync2_config_per_group == false
+  tags: config
+
+- name: main | Configure lsyncd
+  template:
+    src:  lsyncd.conf.j2
+    dest: /etc/lsyncd.conf
+  notify:
+    - restart lsyncd
+  when: lsyncd_enabled == true
+
+- name: main | Adjust the maximum amount of inotify watches. If needed
+  lineinfile:
+    backup: yes
+    dest: /etc/sysctl.conf
+    line: "fs.inotify.max_user_watches={{ lsyncd_max_user_watches }}"
+    regexp: "^fs.inotify.max_user_watches="
+    state: present
+  notify: reload sysctl
+  when: lsyncd_max_user_watches is defined and lsyncd_enabled == true
+
+- name: main | Create .bash_logout file
+  blockinfile:
+    dest: ~/.bash_logout
+    create: yes
+    block: |
+      # Verification des fichiers a synchroniser avec csync2 avant deconnexion
+      csync2 -cr /
+      if csync2 -M; then
+          echo "!!"
+          echo "!! Il y a des fichiers modifies non synchronises ! Tapez 'yes' si"
+          echo "!! vous voulez synchroniser ces fichiers avant de quitter ou 'no'"
+          echo "!! pour quitter sans effectuer la synchronisation"
+          echo "!! Commande :"
+          echo "!!    - csync2 -vx (lancer la synchronisation)"
+          echo "!!    - csync2 -f <fichier> (forcer la synchro d'un fichier en conflit)"
+          echo "!!"
+          read -p "Voulez-vous synchroniser les configurations (yes/no) ? " choix
+          case $choix in
+              yes|y|o|oui)
+                  csync2 -vx
+                  exit ;;
+              *)
+                  exit ;;
+          esac
+      fi
+  when: csync2_config_per_group == false and csync2_bash_logout == true
+  tags: config

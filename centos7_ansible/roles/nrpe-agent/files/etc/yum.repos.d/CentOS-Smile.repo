@@ -1,0 +1,5 @@
+[repo-systeme]
+name=repo-systeme
+baseurl=http://repo-systeme.dedibox.smile.fr/rpm/$releasever
+enabled=1
+gpgcheck=0

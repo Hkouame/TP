@@ -1,0 +1,15 @@
+<interface type='bridge' name='{{ libvirt_network.client }}{{ libvirt_network.vlanid }}'>
+  <start mode='onboot'/> 
+  <bridge> 
+    <interface type='vlan' name='{{ libvirt_network.netif }}.{{ libvirt_network.vlanid }}'> 
+      <vlan tag='{{ libvirt_network.vlanid }}'> 
+        <interface name='{{ libvirt_network.netif }}'/> 
+      </vlan> 
+    </interface> 
+  </bridge> 
+{% if libvirt_network.ipaddr is defined and libvirt_network.prefix is defined %}
+  <protocol family='ipv4'>
+    <ip address="{{ libvirt_network.ipaddr }}" prefix="{{ libvirt_network.prefix }}"/>
+  </protocol>
+{% endif -%}
+</interface>

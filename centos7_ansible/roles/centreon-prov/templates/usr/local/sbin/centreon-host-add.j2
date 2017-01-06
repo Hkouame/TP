@@ -1,0 +1,93 @@
+#!/bin/bash
+
+# Global parameters
+CLAPI_CONF={{ centreon_clapi_conf }}
+CLAPI_BIN={{ centreon_clapi_bin }}
+POLLER_SCRIPT=`dirname $0`/centreon-poller-get
+
+# Load CLAPI configuration file
+if [ -r $CLAPI_CONF ]; then
+    source $CLAPI_CONF
+else
+    echo "Can't load CLAPI configuration file: $CLAPI_CONF"
+    exit 1
+fi
+
+CLAPI_OPT="-u $CLAPI_USER -p $CLAPI_PASS"
+CLAPI_CMD="$CLAPI_BIN $CLAPI_OPT"
+
+# Display command syntax and exit with error code
+syntax()
+{
+    echo "Syntax: $0 hostname ipaddr [snmpcom] [snmpver] [templates] [hostgroup] [pollername]"
+    echo "Syntax: $0 filename.csv"
+    exit 1
+}
+
+# Add host list from a csv file
+add_host()
+{
+    # Get host informations 
+    local hostname=`echo $1`
+    local ipaddr=`echo $2`
+    local snmpcom=`echo $3` 
+    local snmpver=`echo $4`
+    local templates=`echo $5`
+    local hostgroup=`echo $6`
+    local pollername=`echo $7`
+    [[ -z "$templates" ]] && templates=generic-host
+    [[ -z "$pollername" ]] && pollername=`$POLLER_SCRIPT | sort -t ';' -nk 3 | awk -F';' '{print $2}' | head -1`
+
+    # Create hostgroup
+    echo $hostgroup | tr "|" "\n" | while read hg; do
+      $CLAPI_CMD -o HG -a add -v "$hg;$hg"
+    done
+
+    # Create host and set parameter
+    echo "adding host: $hostname"
+    $CLAPI_CMD -o HOST -a ADD -v "$hostname;$hostname;$ipaddr;$templates;$pollername;$hostgroup"
+
+    [[ ! -z "$snmpcom" ]] && $CLAPI_CMD -o HOST -a setparam -v "$hostname;host_snmp_community;$snmpcom"
+    [[ ! -z "$snmpver" ]] && $CLAPI_CMD -o HOST -a setparam -v "$hostname;host_snmp_version;$snmpver"
+
+    # Create service on host associated to template
+    echo "Apply template service"
+    $CLAPI_CMD -o HOST -a applytpl -v "$hostname"
+}
+
+# Add host list from a csv file
+add_host_list()
+{
+    filename=$1
+
+    # Check if filename exist
+    if [ ! -f $filename ]; then
+        echo "Error: $filename No such file or directory";
+        exit 1
+    fi
+
+    # Parse file and host
+    cat $filename | while read line
+    do
+        local hostname=`echo $line | cut -d';' -f1`
+        local ipaddr=`echo $line | cut -d';' -f2`
+        local snmpcom=`echo $line | cut -d';' -f3`
+        local snmpver=`echo $line | cut -d';' -f4`
+        local templates=`echo $line | cut -d';' -f5`
+        local hostgroup=`echo $line | cut -d';' -f6`
+        local pollername=`echo $line | cut -d';' -f7`
+        add_host "$hostname" "$ipaddr" "$snmpcom" "$snmpver" "$templates" "$hostgroup" "$pollername"
+    done
+}
+
+# Check command syntax
+case $# in
+    1) add_host_list "$@"
+    ;;
+    2) add_host "$@"
+    ;;
+    *) syntax
+    ;;
+esac
+
+exit 0

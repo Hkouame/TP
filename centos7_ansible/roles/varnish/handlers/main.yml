@@ -1,0 +1,11 @@
+---
+- name: "Restart Varnish"
+  service: name=varnish state=restarted
+  register: varnish_restarted
+
+- name: "Reload Varnish"
+  service: name=varnish state=reloaded
+  when: varnish_restarted is not defined or not varnish_restarted.changed
+
+- name: "Restart VarnishNCSA"
+  service: name=varnishncsa state=restarted

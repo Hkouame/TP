@@ -1,0 +1,12 @@
+Packet-Type=4
+Packet-Dst-Port=1813
+Acct-Session-Id = "4D2BB8AC-00000098"
+Acct-Status-Type = Start
+Acct-Authentic = RADIUS
+User-Name = "foo"
+NAS-Identifier = "nas-id-013216"
+NAS-Port = 0
+Called-Station-Id = "00-02-6F-AA-AA-AA:My Wireless"
+Calling-Station-Id = "00-1C-B3-AA-AA-AA"
+NAS-Port-Type = Wireless-802.11
+Connect-Info = "CONNECT 48Mbps 802.11b"

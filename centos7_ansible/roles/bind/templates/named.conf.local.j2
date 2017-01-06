@@ -1,0 +1,24 @@
+{% if bind_ddns_enable %}
+key "{{ bind_deploy_zone_name }}" {
+  algorithm hmac-md5;
+  secret "{{ bind_ddns_key }}";
+};
+{% endif %}
+
+zone "122.168.192.in-addr.arpa" {
+    type master;
+    file "db.122.168.192";
+    allow-query { any; };
+{% if bind_ddns_enable %}
+    allow-update { key "{{ bind_deploy_zone_name }}"; };
+{% endif %}
+};
+
+zone "{{ bind_deploy_zone_name }}" {
+    type master;
+    file "db.{{ bind_deploy_zone_name }}";
+    allow-query { any; };
+{% if bind_ddns_enable %}
+    allow-update { key "{{ bind_deploy_zone_name }}"; };
+{% endif %}
+};

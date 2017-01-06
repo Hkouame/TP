@@ -1,0 +1,4 @@
+---
+# defaults file for ocit-base-selinux
+deploy_baculafd_policy: true
+deploy_nrpe_policy: true

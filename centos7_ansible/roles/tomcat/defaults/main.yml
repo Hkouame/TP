@@ -1,0 +1,5 @@
+---
+# defaults file for ansible-tomcat7-java-app
+tomcat_version: 7
+tomcat_java_version: 7
+tomcat_use_mysql: False

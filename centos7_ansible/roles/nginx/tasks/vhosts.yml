@@ -1,0 +1,45 @@
+# Role: ansible-apache
+# Author: Aurélien FOUCRET
+# Description: vHosts management for the Nginx server
+
+---
+
+- name: "Ensure vhost DocumentRoot exists"
+  file: name={{item.value.document_root|default('/var/www/' + item.key)}} state=directory
+  when: item.value.create_document_root|default(true)
+  with_dict: '{{nginx_vhosts|default({})}}'
+  notify: "Restart Nginx"
+  tags:
+    - install
+    - update_app
+
+- name: "Build hosts file from nginx vhosts"
+  lineinfile:
+    dest=/etc/hosts
+    regexp=".* {{item.value.server_name}} .*$"
+    line="{{ansible_lo.ipv4.address}} {{item.value.server_name}} {% if item.value.server_aliases is defined %}{{item.value.server_aliases|join(' ')}}{% endif %}"
+    state=present
+  with_dict: '{{nginx_vhosts|default({})}}'
+  tags:
+    - install
+    - update_app
+
+- name: "Create vhosts"
+  template: src={{item.value.template|default('default.j2')}} dest=/etc/nginx/sites-available/{{item.value.vhost_name|default(item.key)}}
+  with_dict: '{{nginx_vhosts|default({})}}'
+  notify: "Restart Nginx"
+  tags:
+    - install
+    - update_app
+
+- name: "Enable/Disable vhosts"
+  file:
+    name="/etc/nginx/sites-enabled/{{item.value.vhost_name|default(item.key)}}"
+    src=/etc/nginx/sites-available/{{item.value.vhost_name|default(item.key)}}
+    state={{'link' if item.value.enabled|default('true') else 'absent' }}
+  with_dict: '{{nginx_vhosts|default({})}}'
+  notify: "Restart Nginx"
+  tags:
+    - install
+    - update_app
+

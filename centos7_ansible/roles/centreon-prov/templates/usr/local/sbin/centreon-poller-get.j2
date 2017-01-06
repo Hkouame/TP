@@ -1,0 +1,29 @@
+#!/bin/bash
+
+CLAPI_CONF={{ centreon_clapi_conf }}
+CLAPI_BIN={{ centreon_clapi_bin }}
+EXCLUDE_POLLER="{{ centreon_poller_exclude }}"
+
+# Load CLAPI configuration file
+if [ -r $CLAPI_CONF ]; then
+    source $CLAPI_CONF
+else
+    echo "Can't load CLAPI configuration file: $CLAPI_CONF"
+    exit 1
+fi
+
+CLAPI_OPT="-u $CLAPI_USER -p $CLAPI_PASS"
+CLAPI_CMD="$CLAPI_BIN $CLAPI_OPT"
+
+# Load clapi configuration file
+if [ -r $CLAPI_CONF ]; then
+     source $CLAPI_CONF
+else
+     echo "Can't load CLAPI configuration file: $CLAPI_CONF"
+fi
+
+for poller in `$CLAPI_CMD -a POLLERLIST | grep -v "Return code end" | egrep -v "$EXCLUDE_POLLER" | awk '{print $2}'`
+do
+     echo -n "$poller;"
+     $CLAPI_CMD -o INSTANCE -a GETHOSTS -v "$pollername" | wc -l
+done

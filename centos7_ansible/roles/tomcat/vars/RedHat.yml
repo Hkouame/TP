@@ -1,0 +1,15 @@
+---
+tomcat_codename: "{% if tomcat_version == 6 %}tomcat6{% elif tomcat_version == 7 %}tomcat{% endif %}"
+tomcat_java_default_package_list:
+- "java-1.{{ tomcat_java_version }}.0-openjdk-devel"
+tomcat_mysql_connector_package: mysql-connector-java
+tomcat_default_package_list:
+- "{{ tomcat_package_name }}"
+tomcat_package_name: "{{ tomcat_codename }}"
+tomcat_service_name: "{{ tomcat_codename }}"
+tomcat_conf_path: "/etc/{{ tomcat_codename }}"
+tomcat_default_file_path: "/etc/sysconfig/{{ tomcat_codename }}"
+tomcat_webapp_path: "/var/lib/{{ tomcat_codename }}/webapps"
+tomcat_lib_path: "/usr/share/{{ tomcat_codename }}/lib/"
+tomcat_user: "{{ tomcat_codename }}"
+tomcat_group: "{{ tomcat_codename }}"

@@ -1,0 +1,23 @@
+dataDir={{ zk_data_dir }}
+clientPort={{ zk_client_port }}
+maxClientCnxns={{ zk_max_client_connexions }}
+
+# Retains the autopurge.snapRetainCount most recent snapshots and the corresponding transaction logs
+autopurge.snapRetainCount={{ zk_autopurge_snapRetainCount }}
+# Time interval in hours for which the purge task has to be triggered
+autopurge.purgeInterval={{ zk_autopurge_purgeInterval }}
+
+# The number of milliseconds of each tick
+tickTime={{ zk_tickTime }}
+# The number of ticks that the initial
+# synchronization phase can take
+initLimit={{ zk_initLimit }}
+# The number of ticks that can pass between
+# sending a request and getting an acknowledgement
+syncLimit={{ zk_syncLimit }}
+
+# list of all servers in the cluster (including self)
+# format is : server.$id=$hostname:$inter-cluster-port:$election-port
+{% for zk_host in zk_hosts %}
+server.{{ loop.index }}={{ zk_host }}:{{ zk_follower_port }}:{{ zk_election_port }}
+{% endfor %}

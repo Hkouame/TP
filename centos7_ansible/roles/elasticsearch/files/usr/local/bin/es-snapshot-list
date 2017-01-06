@@ -1,0 +1,30 @@
+#!/bin/bash
+
+ES_REPO=backup
+ES_SNAP=_all
+ES_SERVER="127.0.0.1"
+
+syntax() {
+    echo "Usage: ${0##*/} [-n snapshot1,snapshot2,...,snapshotN] [-r repository]"
+    echo
+    echo "Options:"
+    echo "  -n snapshot    Snapshot name list separated by comma (default: $ES_SNAP)"
+    echo "  -r repository  Name of repository (default: $ES_REPO)"
+
+    exit 1
+}
+
+while getopts "n:r:" opt
+do
+    case $opt in
+        n) ES_SNAP=$OPTARG
+        ;;
+        r) ES_REPO=$OPTARG
+        ;;
+        *) syntax
+        ;;
+    esac
+done
+
+# List snapshot
+curl -s -XGET "http://${ES_SERVER}:9200/_snapshot/${ES_REPO}/${ES_SNAP}?pretty" | jq

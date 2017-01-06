@@ -1,0 +1,45 @@
+---
+# tasks file for mule-esb
+
+- name: Mule-ESB | Download mule-esb
+  environment:
+      http_proxy: "{{ http_proxy| defaut(omit) }}"
+      https_proxy: "{{ https_proxy| defaut(omit) }}"
+  get_url:
+      url: https://repository-master.mulesoft.org/nexus/content/repositories/releases/org/mule/distributions/mule-standalone/3.8.0/mule-standalone-3.8.0.tar.gz
+      dest: /tmp/mule-standalone.tar.gz
+      use_proxy: yes
+
+- name: Mule-ESB | Unarchive folder
+  unarchive:
+      src: /tmp/mule-standalone.tar.gz
+      dest: "{{ mule_esb_path_data }}"
+      copy: false
+
+
+- name: Mule-ESB | Create symlink for log
+  tags:
+      - links
+  file:
+      src: "{{ item.src }}"
+      dest:  "{{ item.dest }}"
+      state: link
+      force: yes
+  with_items:
+      - src: "{{ mule_esb_path_data }}/mule-standalone-{{ mule_esb_version }}.0/logs"
+        dest: "{{ mule_esb_path_logs }}"
+      - src: "{{ mule_esb_path_data }}/mule-standalone-{{ mule_esb_version }}.0"
+        dest: "{{ mule_esb_path_data }}/mule-standalone"
+
+- name: Mule-ESB | Create service
+  template:
+      src: mule-esb.service.j2
+      dest: /usr/lib/systemd/system/mule-esb.service
+  notify: "Reload systemd"
+  when: ansible_service_mgr == 'systemd'
+
+- name: Mule-ESB | Start and enable mule-esb service
+  service:
+      name: mule-esb
+      state: started
+      enabled: yes

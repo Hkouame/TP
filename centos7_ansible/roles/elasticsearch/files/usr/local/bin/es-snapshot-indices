@@ -1,0 +1,36 @@
+#!/bin/bash
+
+ES_REPO=backup
+
+syntax() {
+    echo "Usage: ${0##*/} -i indice1,indice2,...,indiceN [-r repository]"
+    echo
+    echo "Options:"
+    echo "  -i indice      Indices list (separated by comma)"
+    echo "  -r repository  Name of repository (default: $ES_REPO)"
+
+    exit 1
+}
+
+while getopts "i:r:" opt
+do
+    case $opt in
+        i) IDX=$OPTARG
+        ;;
+        r) ES_REPO=$OPTARG
+        ;;
+        *) syntax
+        ;;
+    esac
+done
+
+if [ -z "$IDX" ]; then
+    syntax
+fi
+
+IDX_OPT=$(echo "--index $IDX" | sed -e 's/,/ --index /g')
+
+# Launch snapshot
+curator --master-only snapshot --repository ${ES_REPO} indices ${IDX_OPT}
+
+exit $?

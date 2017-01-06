@@ -1,0 +1,32 @@
+---
+# defaults file for elasticsearch
+es_proxy_host: ""
+es_proxy_port: ""
+es_version: "2.2"
+es_cluster_name: "default"
+es_network_host: [ "0.0.0.0" ]
+es_master_node: 'true'
+es_data_node: 'true'
+es_path_data: /var/lib/elasticsearch
+es_path_logs: /var/log/elasticsearch
+es_path_repo: /var/backup/elasticsearch
+es_shard_count: 6
+es_script_inline: 'false'
+es_script_indexed: 'false'
+es_script_engine_groovy_inline_aggs: off
+es_replica_count: 1
+es_max_openfiles: 65536
+es_index_refresh_interval: 30s
+es_install_curator: false
+es_install_admin_scripts: false
+es_install_prompt_scripts: true
+es_heap_size_prct: 0.5
+es_heap_size: "{{ (ansible_memtotal_mb*es_heap_size_prct)|int }}m"
+es_hosts:
+    - "localhost:9200"
+es_plugins:
+    - "lmenezes/elasticsearch-kopf"
+    - "royrusso/elasticsearch-HQ"
+vm_max_map_count: 262144
+firewall_setup: true
+firewall_type: "firewalld"

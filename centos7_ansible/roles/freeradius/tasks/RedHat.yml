@@ -1,0 +1,28 @@
+---
+- name: RedHat | Create symlink for /etc/freeradius
+  file:
+    src:   "{{ freerad_confdir }}"
+    dest:  /etc/freeradius
+    owner: root
+    group: radiusd
+    state: link
+
+- name: RedHat | Configure radiusd.conf
+  template:
+    src:   etc/freeradius/radiusd.conf.j2
+    dest:  "{{ freerad_confdir }}/radiusd.conf"
+    owner: root
+    group: "{{ freerad_group }}"
+  notify:
+    - "restart freeradius"
+
+- name: RedHat | Setting firewall rules
+  firewalld:
+    port:      "{{item}}/udp"
+    permanent: true
+    state:     enabled
+    immediate: yes
+  with_items:
+    - 1812
+    - 1813
+    - 18121

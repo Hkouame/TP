@@ -1,0 +1,59 @@
+- name: create conf directory
+  file:
+    dest: "/etc/{{ java_app.name }}"
+    state: directory
+  notify:
+    - restart tomcat
+
+- name: create logging directory
+  file:
+    dest:  "{{ java_app.log_file | dirname }}"
+    state: directory
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+    mode:  0750
+  notify:
+    - restart tomcat
+
+- name: configure Tomcat7 classpath loader
+  lineinfile:
+    dest:   "{{ tomcat_conf_path }}/catalina.properties"
+    regexp: '^(common.loader=(?:.(?!/etc/{{ java_app.name }}))*)$'
+    line:   '\1,/etc/{{ java_app.name }}'
+    backrefs: yes
+  notify:
+    - restart tomcat
+
+- name: copy configuration
+  template:
+    src:   "{{ item }}.j2"
+    dest:  "/etc/{{ java_app.name }}/{{ item|basename }}"
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+    mode:  0640
+  with_items: "{{ java_app.conf_files|default([]) }}"
+  notify:
+    - restart tomcat
+
+- name: copy logrotate configuration
+  template:
+    src:  "{{ java_app.logrotate_conf }}"
+    dest: "/etc/logrotate.d/{{ java_app.name }}"
+  when: java_app.logrotate_conf is defined
+
+- name: copy context
+  template:
+    src:  "{{ java_app.context }}"
+    dest: "{{ tomcat_conf_path }}/Catalina/localhost/{{ java_app.name }}.xml"
+    mode: 0644
+  when: java_app.context is defined
+  notify:
+    - restart tomcat
+
+- name: copy war
+  copy:
+    src:  "{{ java_app.war }}"
+    dest: "{{ tomcat_webapp_path }}/{{ java_app.name }}.war"
+  notify:
+    - remove old java application
+    - restart tomcat

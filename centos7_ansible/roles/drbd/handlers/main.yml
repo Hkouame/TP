@@ -1,0 +1,4 @@
+---
+# handlers file for drbd
+- name: Restart DRBD
+  service: name=drbd state=restarted

@@ -1,0 +1,4 @@
+---
+
+csync2_service: openbsd-inetd
+csync2_conf_dir: /etc

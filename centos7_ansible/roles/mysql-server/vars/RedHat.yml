@@ -1,0 +1,8 @@
+---
+mysql_config_fragment_dir: /etc/my.d
+mysql_config_file: /etc/my.cnf
+mysql_service_name: "{% if mysql_flavor == 'percona' %}mysql{% else %}mysqld{% endif %}"
+mysql_server_package: "{% if mysql_flavor == 'percona' %}Percona-Server-server{% else %}mysql-server{% endif %}"
+mysql_driver_package: MySQL-python
+mysql_log_owner: mysql
+mysql_log_group: mysql

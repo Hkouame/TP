@@ -1,0 +1,41 @@
+{% for group in csync2_group -%}
+group {{ group.name }}
+{
+  {% for host in csync2_hosts -%}
+  host {{ hostvars[host]['ansible_hostname'] }};
+  {% endfor -%}
+
+  # shared key
+  key {{ csync2_key_path }};
+
+  # files and folders to sync
+  {% for include in group.includes|default([]) -%}
+  include {{ include }};
+  {% endfor -%}
+
+  {% for exclude in group.excludes|default([]) -%}
+  exclude {{ exclude }};
+  {% endfor -%}
+
+
+{% if group.actions is defined %}
+  {% for action in group.actions -%}
+  action {
+    pattern {{ action.pattern }};
+    exec {{ action.exec }};
+    {% if action.do_local == true -%}
+    do-local;
+    {% endif %}
+  }
+  {% endfor -%}
+{% endif %}
+
+  # Backup folder
+  backup-directory {{ csync2_backup_folder }};
+  backup-generations {{ csync2_backup_generations }};
+
+  # Resolution mode
+  auto {{ group.auto|default('younger') }};
+}
+
+{% endfor -%}

@@ -1,0 +1,6 @@
+---
+solr_service_name: solr
+solr:
+  source_url: http://archive.apache.org/dist/lucene/solr/5.2.1/solr-5.2.1.tgz
+  source_sha256sum: 3f54cec862da1376857f96f4a6f2044a5addcebc4df159b8797fd71f7ba8df86
+  subpath: solr-5.2.1

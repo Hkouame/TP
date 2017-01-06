@@ -1,0 +1,10 @@
+apache2_default_root: /var/www/html
+apache2_default_packages:
+  - httpd
+  - mod_ssl
+apache2_service_name: httpd
+apache2_config_file: /etc/httpd/conf/httpd.conf
+apache2_confd_dir: /etc/httpd/conf.d
+apache2_binary: httpd
+apache2_log_owner: root
+apache2_log_group: root

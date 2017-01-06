@@ -1,0 +1,5 @@
+- name: "Restart FPM"
+  service: name="{{ php_service_name }}" state=restarted
+
+- name: "Reload FPM"
+  service: name="{{ php_service_name }}" state=reloaded

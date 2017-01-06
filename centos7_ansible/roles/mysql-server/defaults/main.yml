@@ -1,0 +1,63 @@
+---
+# Packages used to install MySQL
+mysql_packages:
+  - "{{ mysql_server_package }}"
+  - "{{ mysql_driver_package }}"
+
+manage_by_cluster: False
+mysql_flavor: mysql
+# Default root password
+mysql_root_password: changeme
+
+mysql_use_binlog: False
+
+# Menmory Management
+# Should be tuned for every use cas and depends of your real database usage
+mysql_config_key_buffer: 64M
+mysql_config_max_allowed_packet: 16M
+
+mysql_config_thread_stack: 192K
+mysql_config_thread_cache_size: 0
+
+mysql_config_query_cache_type: 1
+mysql_config_query_cache_limit: 1M
+mysql_config_query_cache_size: 32MB
+
+mysql_config_innodb_buffer_pool_size_prct: 0.8
+mysql_config_innodb_buffer_pool_size: "{{ (ansible_memtotal_mb*mysql_config_innodb_buffer_pool_size_prct)|int }}M"
+mysql_config_innodb_additional_mem_pool_size: 128M
+
+# Slow query log management
+mysql_config_slow_query_log: 1
+mysql_config_slow_query_log_file: /var/log/mysql/mysql-slow.log
+mysql_config_slow_long_query_time: 2
+
+# Network params
+mysql_config_bind_address: "0.0.0.0"
+mysql_config_bind_port: 3306
+
+# Behavior of the flush to the disk
+#
+mysql_config_innodb_flush_log_at_trx_commit: 1
+
+# Skip DNS resolution.
+# Used to avoid long connection time
+mysql_config_skip_name_resolve: 1
+
+# Binary log settings
+mysql_config_log_bin: "/var/log/mysql/mysql-bin.log"
+mysql_config_binlog_format: ROW
+mysql_config_expire_logs_days: 8
+
+# Dangerous settings only applied at install time (require to drop databases)
+mysql_config_innodb_file_per_table: 1
+mysql_config_innodb_log_file_size: 32M
+mysql_config_innodb_log_buffer_size: 4M
+mysql_config_innodb_data_file_path: "ibdata1:256M:autoextend"
+mysql_config_innodb_autoextend_increment: 64
+
+# Default settings used to create a new database
+mysql_db_default_encoding: utf8
+mysql_db_default_collation: utf8_unicode_ci
+
+mysql_databases: {}

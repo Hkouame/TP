@@ -1,0 +1,3 @@
+---
+# vars file for bind
+bind_script_dir: /usr/local/sbin

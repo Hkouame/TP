@@ -1,0 +1,39 @@
+---
+# tasks file for keepalived
+- include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+        - '{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml'           # CentOS-6.5
+        - '{{ ansible_os_family }}-{{ ansible_distribution_version }}.yml'              # RedHat-6.5
+        - '{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml'     # CentOS-6
+        - '{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml'        # RedHat-6
+        - '{{ ansible_distribution }}.yml'                                              # CentOS
+        - '{{ ansible_os_family }}.yml'                                                 # RedHat
+        - 'main.yml'
+      paths: '../vars'
+
+- name: main | Install keepalived
+  package:
+    name:  "{{ keepalived_package_name}}"
+    state: present
+
+- name: main | Deploy configuration
+  template:
+    src:   etc/keepalived/keepalived.conf.j2
+    dest:  "{{ keepalived_confdir }}/keepalived.conf"
+    owner: root
+    group: root
+    mode:  0640
+  notify:
+    - reload keepalived
+
+- name: main | Enable and start keepalived service
+  service:
+    name:    "{{ keepalived_service_name }}"
+    state:   started
+    enabled: yes
+
+- include: "{{ ansible_os_family }}.yml"
+
+- include: adminscript.yml
+  when: keepalived_deploy_adminscript == true

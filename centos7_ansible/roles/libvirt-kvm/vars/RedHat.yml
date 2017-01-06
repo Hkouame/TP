@@ -1,0 +1,17 @@
+---
+libvirt_packages:
+  - libvirt-daemon
+  - libvirt-client
+  - virt-install
+  - virt-top
+  - python-lxml
+
+libvirt_service: libvirtd
+
+kvm_packages:
+  - qemu-kvm
+  - qemu-img
+
+kvm_packages_tools:
+  - libguestfs-tools
+  - libguestfs-bash-completion

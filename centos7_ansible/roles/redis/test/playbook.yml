@@ -1,0 +1,7 @@
+- hosts: all 
+  vars:
+    redis_setting_port: 6380
+  roles:
+    - role: ansible-redis
+  post_tasks:
+    - wait_for: port=6380 timeout=20

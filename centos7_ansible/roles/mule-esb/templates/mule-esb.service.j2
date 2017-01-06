@@ -1,0 +1,10 @@
+# /usr/lib/systemd/system/mule-esb.service
+[Unit]
+Description=Mule ESB
+After=network.target
+
+[Service]
+ExecStart=/srv/mule-standalone-{{mule_esb_version}}.0/bin/mule
+
+[Install]
+WantedBy=multi-user.target

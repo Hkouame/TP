@@ -1,0 +1,27 @@
+# Role: ansible-apache
+# Author: Aurélien FOUCRET
+# Description: Install Apache and configured modules
+
+---
+
+- name: "Detect Apache version"
+  shell: "{{ apache2_binary }} -v | grep '^Server version' | grep -o 'Apache/...' | cut -d/ -f2"
+  register: apache2_version_cmd
+  always_run: yes
+  changed_when: False
+
+- name: "Save Apache version as fact"
+  set_fact: apache2_version="{{apache2_version_cmd.stdout}}"
+
+- name: "Create conf.d folder if no exists"
+  file: path="{{ apache2_confd_dir }}" state=directory
+  tags:
+    - install
+    - update_config
+
+- name: "Tighten Apache2 security"
+  copy: src=security dest="{{ apache2_confd_dir }}/security.conf"
+  notify: "Reload Apache"
+  tags:
+    - install
+    - update_config

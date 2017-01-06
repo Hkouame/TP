@@ -1,0 +1,65 @@
+---
+
+- name: RedHat | Install python libs for selinux
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - policycoreutils-python
+    - libselinux-python
+
+- name: RedHat | Install packages required by modules
+  package:
+    name: "{{ item.1 }}"
+    state: "present"
+  with_subelements:
+    - '{{ apache2_modules_packages }}'
+    - packages
+  when: apache2_modules_packages is defined and item.0.module in apache2_all_modules
+  tags:
+    - install
+    - update_config
+  notify:
+    - "Restart Apache"
+
+- name: RedHat | Configure Apache2 SSL port
+  lineinfile:
+    dest: "{{ apache2_config_file_ssl }}"
+    regexp: '^\s*Listen\s+'
+    line: "Listen {{ apache2_ssl_port }} https"
+  when: "'ssl' in apache2_all_modules"
+  notify: "Restart Apache"
+  tags:
+    - install
+    - update_config
+
+- name: RedHat | Configure Apache2 ports
+  lineinfile:
+    dest: "{{ apache2_config_file }}"
+    regexp: '^\s*Listen\s+'
+    line: "Listen {{ apache2_port }}"
+  notify: "Restart Apache"
+  tags:
+    - install
+    - update_config
+
+- name: RedHat | Install Apache2 base packages
+  package:
+    name: "{{ item }}"
+    state: "present"
+  with_items: '{{ apache2_packages|default(apache2_default_packages) + apache2_extra_packages|default([]) }}'
+  tags:
+    - install
+    - update_config
+  notify:
+    - "Restart Apache"
+
+- name: RedHat | Setting firewall rules
+  firewalld:
+    service: "{{ item }}"
+    permanent: true
+    state: enabled
+    immediate: yes
+  with_items:
+      - http
+      - https

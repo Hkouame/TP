@@ -1,0 +1,38 @@
+---
+# tasks file for ansible-mariadb-galera-cluster
+- include: unconfigure_cluster.yml
+  when: >
+        reconfigure_galera is defined and
+        reconfigure_galera
+
+- include: debian.yml
+  when: ansible_os_family == "Debian"
+
+- include: redhat.yml
+  when: ansible_os_family == "RedHat"
+
+- include: configure_firewall.yml
+  when: ansible_os_family == "RedHat"
+  tags:
+    - configure_firewall
+
+- include: configure_logrotate.yml
+  tags: setup
+
+- include: setup_cluster.yml
+  tags: setup
+
+- include: configure_root_access.yml
+  tags: setup
+
+- include: admin_script.yml
+  tags: config
+
+- include: configure_monitoring.yml
+  when: enable_nagios_monitoring
+
+- include: galera_monitoring.yml
+  tags:
+    - config_galera_monitoring
+  when: enable_galera_monitoring
+

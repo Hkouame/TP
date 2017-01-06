@@ -1,0 +1,21 @@
+---
+
+- name: "Install package"
+  apt: name=mongodb-server state="present" update_cache=yes cache_valid_time=28800
+  tags:
+    - install
+
+- name: copy configuration file
+  template: src="{{ mongodb_config_template }}" dest=/etc/mongodb.conf
+  when: mongodb_config_template is defined
+  notify: Restart mongodb
+  tags:
+    - install
+    - update_config
+
+- name: "Check or start service"
+  service: name=mongodb state=started enabled=yes
+  tags:
+    - install
+    - update_config
+

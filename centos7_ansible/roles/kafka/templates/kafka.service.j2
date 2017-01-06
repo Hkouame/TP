@@ -1,0 +1,12 @@
+[Unit]
+Description=kafka
+After=zookeeper.service
+
+[Service]
+User=kafka
+ExecStart=/usr/bin/kafka-server-start /etc/kafka/server.properties
+ExecStop=/usr/bin/kafka-server-stop
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target

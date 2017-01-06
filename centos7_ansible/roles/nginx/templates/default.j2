@@ -1,0 +1,41 @@
+{% set vhost_name = item.value.vhost_name|default(item.key) %}
+{% set vhost_params = item.value %}
+{% set document_root = vhost_params.document_root|default('/var//www/' + vhost_name) %}
+{% set ssl_enabled = vhost_params.ssl is defined and vhost_params.ssl.enabled|default(false) %}
+{% set php_enabled = vhost_params.php is defined and vhost_params.php.enabled|default(false) %}
+{% if ssl_enabled %}
+# Force redirect to HTTPS
+server {
+    listen       80;
+    server_name {{vhost_params.server_name}} {% for alias in vhost_params.server_aliases|default([]) %}{{alias}} {% endfor %} ;
+    rewrite ^ https://$server_name$request_uri? permanent;
+}
+{% endif %}
+
+server {
+    {% if ssl_enabled %}
+    listen {{ nginx_ssl_port }} ssl;
+    ssl_certificate {{vhost_params.ssl.certificate_file}};
+    ssl_certificate_key {{vhost_params.ssl.certificate_key_file}};
+    {% else %}
+    listen {{ nginx_port }} ;
+    {% endif %}
+    root {{document_root}};
+    server_name {{vhost_params.server_name}} {% for alias in vhost_params.server_aliases|default([]) %}{{alias}} {% endfor %} ;
+    index index.html index.htm;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    {% if php_enabled %}
+    location ~ \.php$ {
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        include fastcgi_params;
+        fastcgi_param  SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_index index.php;
+        fastcgi_pass {{ vhost_params.php.socket | default("unix:/var/run/php5-fpm.sock") }} ;
+    }
+    {% endif %}
+}
+

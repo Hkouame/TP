@@ -1,0 +1,14 @@
+---
+
+- name: "Setting firewall rules"
+  firewalld:
+    port:      "{{item}}/tcp"
+    permanent: true
+    state:     enabled
+    immediate: yes
+  with_items:
+    - '{{ zk_client_port }}'
+    - '{{ zk_follower_port }}'
+    - '{{ zk_election_port }}'
+    - '{{ kafka_port }}'
+  when: firewall_type == "firewalld"

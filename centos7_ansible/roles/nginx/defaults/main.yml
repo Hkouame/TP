@@ -1,0 +1,17 @@
+---
+# defaults file for ansible-nginx
+# What package should be installed
+nginx_packages:
+    - nginx
+
+nginx_disabled_default:
+    - default
+
+nginx_port: "80"
+nginx_ssl_port: "443"
+nginx_user: "www-data"
+nginx_group: "www-data"
+nginx_use_php: False
+nginx_php_endpoint: "unix:/var/run/php5-fpm.sock"
+
+nginx_vhosts: {}

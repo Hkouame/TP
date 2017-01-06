@@ -1,0 +1,13 @@
+---
+# defaults file for ansible-varnish
+varnish_defaults_template: "varnish_defaults.j2"
+varnish_params_template: "varnish_params.j2"
+varnish_vcl_template: "varnish{{ varnish_version|first }}_vcl.j2"
+varnish_vcl_name: "default"
+varnish_port: "80"
+varnish_backend_host: "127.0.0.1"
+varnish_backend_port: "{{ apache2_port|default(81) }}"
+varnish_memory_mb: "64"
+varnish_forwarded_ip_in_logs: false
+varnish_additional_opts: ""
+varnish_use_repo: false

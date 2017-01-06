@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if [ $# -ne 1 ]; then
+	echo "Usage: ${0##*/} topic"
+	exit 1
+fi
+
+kafka-console-producer --broker-list localhost:9092 --topic $1

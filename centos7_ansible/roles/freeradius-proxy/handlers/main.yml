@@ -1,0 +1,12 @@
+---
+- name: restart freeradius
+  service:
+    name:  "{{ freerad_service_name }}"
+    state: restarted
+
+- name: restart freeradius remote
+  service:
+    name:  "{{ freerad_service_name }}"
+    state: restarted
+  delegate_to: "{{ item }}"
+  with_items: "{{ freerad_prx_home_server }}"

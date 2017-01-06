@@ -1,0 +1,2 @@
+freerad_service_name: freeradius
+freerad_confdir: /etc/freeradius

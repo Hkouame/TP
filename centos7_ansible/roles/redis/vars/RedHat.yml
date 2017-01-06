@@ -1,0 +1,6 @@
+---
+redis_package_name: redis
+redis_service_name: redis
+redis_default_file: /etc/sysconfig/redis-server
+redis_config_file: /etc/redis.conf
+redis_extra_config_file: /etc/redis_ansible.conf

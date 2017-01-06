@@ -1,0 +1,14 @@
+---
+  
+# Package management
+
+php_extension_packages: []
+
+php_extra_packages: []
+
+# For backward compatibility
+php_packages: "{{ php_default_packages }}"
+
+php_settings_all: []
+php_settings_cli: []
+php_settings_apache2: []

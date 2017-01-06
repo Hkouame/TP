@@ -1,0 +1,4 @@
+{% for client in snmpd_allow_clients %}
+rocommunity {{ snmpd_community }} {{ client }} .1
+{% endfor %}
+dontLogTCPWrappersConnects 1

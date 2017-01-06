@@ -1,0 +1,3 @@
+---
+- name: Install Varnish repo
+  yum: disable_gpg_check=yes state=installed name="https://repo.varnish-cache.org/redhat/varnish-{{ varnish_use_repo }}.el{{ ansible_distribution_major_version }}.rpm"

@@ -1,0 +1,8 @@
+---
+# Handler in charge of restarting MySQL when needed
+- name: "Restart MySQL"
+  service:
+    name: "{{ mysql_service_name }}"
+    state: restarted
+    enabled: true
+  when: not manage_by_cluster

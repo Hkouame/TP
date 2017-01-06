@@ -1,0 +1,1 @@
+{% if ansible_hostname[-1:] | int %}{{ ansible_hostname[-1:] }}{% elif kafka_broker_id %}{{ kafka_broker_id }}{% else %}1{% endif %}

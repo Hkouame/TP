@@ -1,0 +1,13 @@
+---
+- name: RedHat | Declare EPEL repository
+  yum:
+    name:  epel-release
+    state: installed
+
+- name: RedHat | Declare RHEV repository
+  yum_repository:
+    name: qemu-kvm-rhev
+    description: oVirt rebuilds of qemu-kvm-rhev
+    baseurl: http://resources.ovirt.org/pub/ovirt-3.5/rpm/el7Server/
+    mirrorlist: http://resources.ovirt.org/pub/yum-repo/mirrorlist-ovirt-3.5-el7Server
+    gpgcheck: no

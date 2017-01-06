@@ -1,0 +1,39 @@
+---
+# Kafka input
+- name: config | Deploy input kafka configuration file
+  template:
+    src:   etc/logstash/conf.d/input-kafka.conf.j2
+    dest:  "{{ ls_path_conf }}/conf.d/input-kafka.conf"
+    owner: root
+    group: logstash
+    mode:  0640
+    force: no
+  when: ls_input_kafka
+  notify:
+    - "Restart Logstash"
+
+# Kafka output
+- name: config | Deploy output kafka configuration file
+  template:
+    src:   etc/logstash/conf.d/output-kafka.conf.j2
+    dest:  "{{ ls_path_conf }}/conf.d/output-kafka.conf"
+    owner: root
+    group: logstash
+    mode:  0640
+    force: no
+  when: ls_output_kafka
+  notify:
+    - "Restart Logstash"
+
+# Elasticsearch output
+- name: config | Deploy output elasticsearch configuration file
+  template:
+    src:   etc/logstash/conf.d/output-elasticsearch.conf.j2
+    dest:  "{{ ls_path_conf }}/conf.d/output-elasticsearch.conf"
+    owner: root
+    group: logstash
+    mode:  0640
+    force: no
+  when: ls_output_elasticsearch
+  notify:
+    - "Restart Logstash"

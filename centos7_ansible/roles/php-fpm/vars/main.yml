@@ -1,0 +1,17 @@
+---
+php_default_settings_all:
+        max_input_time: 60
+        expose_php: Off
+        display_errors: Off
+        error_reporting: "E_ALL & ~E_DEPRECATED & ~E_STRICT"
+        log_errors: On
+        error_log:
+
+php_default_settings_cli:
+        memory_limit: 512M
+        max_execution_time: 1200
+
+php_default_settings_fpm:
+        memory_limit: 128M
+        max_execution_time: 120
+

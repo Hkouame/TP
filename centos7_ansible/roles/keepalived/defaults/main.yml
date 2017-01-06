@@ -1,0 +1,14 @@
+---
+# defaults file for keepalived
+keepalived_deploy_adminscript: true
+keepalived_vrrp_instance:
+#  instance1:
+#    interface: eth0
+#    vrid: 100
+#    pass: secretpass0
+#    vip:  10.25.25.25
+#  instance2:
+#    interface: eth1
+#    vrid: 100
+#    pass: secretpass1
+#    vip:  10.25.26.25

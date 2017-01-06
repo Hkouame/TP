@@ -1,0 +1,3 @@
+#!/bin/bash
+
+{{ ls_path_bin }}/logstash -t -f /etc/logstash/conf.d/ -vvv  --verbose --debug

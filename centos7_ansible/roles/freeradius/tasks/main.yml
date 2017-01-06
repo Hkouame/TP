@@ -1,0 +1,108 @@
+---
+# include per-environment variables
+- include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+        - '{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml'           # CentOS-6.5
+        - '{{ ansible_os_family }}-{{ ansible_distribution_version }}.yml'              # RedHat-6.5
+        - '{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml'     # CentOS-6
+        - '{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml'        # RedHat-6
+        - '{{ ansible_distribution }}.yml'                                              # CentOS
+        - '{{ ansible_os_family }}.yml'                                                 # RedHat
+        - 'main.yml'
+      paths: '../vars'
+
+- name: main | Install freeradius
+  package:
+    name:  "{{ item }}"
+    state: installed
+  with_items:
+    - "{{ freerad_packages_name }}"
+
+- include: '{{ ansible_os_family }}.yml'
+
+- name: main | Create clients.d directory
+  file:
+    path:  "{{ freerad_confdir }}/clients.d/"
+    owner: root
+    group: "{{ freerad_group }}"
+    state: directory
+
+- name: main | Configure client file
+  copy:
+    src:  etc/freeradius/clients.conf
+    dest: "{{ freerad_confdir }}/clients.conf"
+    owner: root
+    group: "{{ freerad_group }}"
+  notify: restart freeradius
+
+- name: main | Add localhost client for test
+  template:
+    src:  etc/freeradius/clients.d/localhost
+    dest: "{{ freerad_confdir }}/clients.d/localhost"
+    owner: root
+    group: "{{ freerad_group }}"
+  notify: restart freeradius
+
+- name: main | Remove inner-tunnel sites
+  file:
+    path:  "{{ freerad_confdir }}/sites-enabled/inner-tunnel"
+    state: absent
+  notify: restart freeradius
+
+- name: main | Enable default site
+  file:
+    path:  "{{ freerad_confdir }}/sites-enabled/default"
+    src:   '../sites-available/default'
+    owner: root
+    group: "{{ freerad_group }}"
+    state: link
+    force: yes
+  notify: restart freeradius
+
+- name: main | Enable control-socket site
+  file:
+    path:  "{{ freerad_confdir }}/sites-enabled/control-socket"
+    src:   '../sites-available/control-socket'
+    owner: root
+    group: "{{ freerad_group }}"
+    state: link
+    force: yes
+  notify: restart freeradius
+  when: freerad_enable_controlsocket
+
+- name: main | Configure control-socket site
+  template:
+    src:   etc/freeradius/sites-available/control-socket.j2
+    dest:  "{{ freerad_confdir }}/sites-available/control-socket"
+    owner: root
+    group: "{{ freerad_group }}"
+  notify: restart freeradius
+
+- name: main | Enable status site
+  file:
+    path:  "{{ freerad_confdir }}/sites-enabled/status"
+    src:   '../sites-available/status'
+    owner: root
+    group: "{{ freerad_group }}"
+    state: link
+    force: yes
+  notify: restart freeradius
+  when: freerad_enable_serverstatus
+
+- name: main | Configure status site
+  template:
+    src:   etc/freeradius/sites-available/status.j2
+    dest:  "{{ freerad_confdir }}/sites-available/status"
+    owner: root
+    group: "{{ freerad_group }}"
+  notify: restart freeradius
+
+- name: main | Enable freeradius service
+  service:
+    name:    "{{ freerad_service_name }}"
+    enabled: yes
+    state:   started
+
+- include: admin_scripts.yml
+  when: freerad_deploy_admin_scripts

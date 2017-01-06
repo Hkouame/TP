@@ -1,0 +1,10 @@
+nrpe_packages:
+  - nrpe
+  - nagios-plugins-all
+  - nrpe-plugins-smile
+
+nrpe_service: nrpe
+
+nrpe_pid_file: /var/run/nrpe/nrpe.pid
+nrpe_user: nrpe
+nrpe_group: nrpe

@@ -1,0 +1,57 @@
+---
+# tasks file for libvirt-kvm
+# include per-environment variables
+- include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+        - '{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml'           # CentOS-6.5
+        - '{{ ansible_os_family }}-{{ ansible_distribution_version }}.yml'              # RedHat-6.5
+        - '{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml'     # CentOS-6
+        - '{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml'        # RedHat-6
+        - '{{ ansible_distribution }}.yml'                                              # CentOS
+        - '{{ ansible_os_family }}.yml'                                                 # RedHat
+        - 'main.yml'
+      paths: '../vars'
+
+- include: '{{ ansible_os_family }}.yml'
+
+- name: main | Install vagrant
+  package:
+    name:  "{{ item }}"
+    state: present
+  with_items:
+    - "{{ vagrant_packages }}"
+
+- name: main | Create vagrant home directory
+  file:
+    path:  "{{ vagrant_home }}"
+    state: directory
+    owner: root
+    group: root
+    mode:  0750
+
+- name: main | Declare default provider in .bashrc
+  lineinfile:
+    dest: /root/.bashrc
+    regexp: "^{{ item }}"
+    line: "{{ item }}"
+  with_items:
+    - "export VAGRANT_HOME={{ vagrant_home }}"
+    - "export VAGRANT_DEFAULT_PROVIDER=libvirt"
+
+- name: main | Install plugins
+  shell: "vagrant plugin list | egrep -q '^{{ item }} ' || vagrant plugin install {{ item }}"
+  register: vagrant_plugin_result
+  with_items: "{{ vagrant_plugins }}"
+  changed_when: "'Installing the ' in vagrant_plugin_result.stdout"
+
+- name: main | Deploy admin script
+  copy:
+    src:   "usr/local/sbin/{{ item }}"
+    dest:  "/usr/local/sbin/{{ item }}"
+    owner: root
+    group: root
+    mode:  0755
+  with_items:
+    - vagrant-ddns
+  when: vagrant_deploy_scripts == true

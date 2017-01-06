@@ -1,0 +1,64 @@
+- include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+        - '{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml'           # CentOS-6.5
+        - '{{ ansible_os_family }}-{{ ansible_distribution_version }}.yml'              # RedHat-6.5
+        - '{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml'     # CentOS-6
+        - '{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml'        # RedHat-6
+        - '{{ ansible_distribution }}.yml'                                              # CentOS
+        - '{{ ansible_os_family }}.yml'                                                 # RedHat
+        - 'default.yml'
+      paths: '../vars'
+
+- name: "Install Redis server"
+  apt: name={{item}} state="present"
+  with_items: '{{redis_packages}}'
+  when: ansible_os_family == 'Debian'
+  notify: "Restart Redis"
+  tags:
+    - install
+    - update
+    - update_config
+
+- name: "Install Redis server"
+  yum: name={{item}} state="present"
+  with_items: '{{redis_packages}}'
+  when: ansible_os_family == 'RedHat'
+  notify: "Restart Redis"
+  tags:
+    - install
+    - update
+    - update_config
+
+- name: "Remove save from original config file"
+  replace:
+    regexp: '^(save [\d]+ [\d]+)'
+    replace: '# \1'
+    dest: "{{ redis_config_file }}"
+  notify: "Restart Redis"
+  tags:
+    - install
+    - update
+    - update_config
+
+- name: "Adjust settings into defaults file"
+  template: src=default.j2 dest="{{ redis_default_file }}"
+  notify: "Restart Redis"
+
+- name: "Append include file for local settings into /etc/redis/redis.conf"
+  lineinfile:
+    line: "include {{ redis_extra_config_file}}"
+    state: present
+    dest: "{{ redis_config_file }}"
+  notify: "Restart Redis"
+  tags:
+    - install
+    - update
+    - update_config
+    
+- name: "Adjust settings into config file"
+  template: src=ansible.conf.j2 dest="{{ redis_extra_config_file }}"
+  notify: "Restart Redis"
+
+- name: "Ensure redis service is started"
+  service: name="{{ redis_service_name }}" state=started enabled=yes

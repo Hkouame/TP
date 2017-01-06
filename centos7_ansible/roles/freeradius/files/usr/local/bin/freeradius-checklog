@@ -1,0 +1,3 @@
+#!/bin/bash
+
+multitail -CS freeradius /var/log/radius/radius.log

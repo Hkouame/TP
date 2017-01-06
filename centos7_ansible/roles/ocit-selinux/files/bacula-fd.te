@@ -1,0 +1,13 @@
+
+module bacula-fd 1.0;
+
+require {
+	type bacula_var_run_t;
+	type bacula_t;
+	class dir write;
+    class dir add_name;
+}
+
+#============= bacula_t ==============
+allow bacula_t bacula_var_run_t:dir write;
+allow bacula_t bacula_var_run_t:dir add_name;

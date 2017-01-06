@@ -1,0 +1,7 @@
+---
+# defaults file for freeradius-proxy
+freerad_prx_lb_type: load-balance
+freerad_prx_rq_type: auth+acct
+freerad_prx_secret: testing123
+freerad_prx_port: 1812
+freerad_prx_home_server: ['localhost']

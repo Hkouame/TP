@@ -1,0 +1,21 @@
+- name: "Install PHP and extras packages"
+  yum: name={{item}} state="present"
+  with_items: "{{ php_packages + php_extension_packages + php_extra_packages }}"
+  notify: "Restart Apache"
+  when: ansible_os_family == "RedHat"
+  tags:
+    - install
+    - update_config
+    - update_app
+
+- name: "Register PHP version"
+  command: 'php -r "echo PHP_MAJOR_VERSION.\"\n\".PHP_MINOR_VERSION.\"\n\";"'
+  register: phpver
+  changed_when: False
+
+- name: "PHP Configuration override"
+  template: src=configuration.ini.j2 dest="/etc/php.d/80-ansible.ini"
+  notify: "Reload Apache"
+  tags:
+    - install
+    - update_config

@@ -1,0 +1,24 @@
+---
+# defaults file for csync2-lsyncd
+
+# Desired number of inotify watches in the kernel. Should be more then the number of files and folders you want to be kept in sync
+lsyncd_enabled: false
+lsyncd_max_user_watches: 4194304
+
+# lsyncd key file
+lsyncd_status_file: /var/log/lsyncd/lsyncd.status
+lsyncd_log_dir: /var/log/lsyncd
+lsyncd_log_file: /var/log/lsyncd/lsyncd.log
+
+# lsyncd sync options
+lsyncd_delay: 5
+lsyncd_max_processes: 1
+
+# csync2 options
+csync2_config_per_group: true
+csync2_bash_logout: false
+csync2_backup_folder: /var/backups/csync2
+csync2_backup_generations: 0
+csync2_key_path: "{{ csync2_conf_dir }}/csync2.key"
+csync2_auto: younger
+csync2_groups:

@@ -1,0 +1,8 @@
+---
+haproxy_package_name: haproxy
+haproxy_service_name: haproxy
+
+haproxy_confdir: /etc/haproxy
+
+haproxy_user:  haproxy
+haproxy_group: haproxy

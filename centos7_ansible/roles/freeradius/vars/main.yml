@@ -1,0 +1,5 @@
+---
+# vars file for freeradius
+freerad_packages_name:
+  - freeradius
+  - freeradius-utils

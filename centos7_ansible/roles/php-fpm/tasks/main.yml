@@ -1,0 +1,47 @@
+---
+- include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+        - '{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml'           # CentOS-6.5
+        - '{{ ansible_os_family }}-{{ ansible_distribution_version }}.yml'              # RedHat-6.5
+        - '{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml'     # CentOS-6
+        - '{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml'        # RedHat-6
+        - '{{ ansible_distribution }}.yml'                                              # CentOS
+        - '{{ ansible_os_family }}.yml'                                                 # RedHat
+        - 'default.yml'
+      paths: '../vars'
+
+- name: "Install PHP and extras packages"
+  apt: name="{{item}}" state="present"
+  with_items: "{{php_packages + php_extension_packages + php_extra_packages}}"
+  when: ansible_os_family == 'Debian'
+  tags:
+    - install
+
+- name: "Install PHP and extras packages"
+  yum: name="{{item}}" state="present"
+  with_items: "{{php_packages + php_extension_packages + php_extra_packages}}"
+  when: ansible_os_family == 'RedHat'
+  tags:
+    - install
+
+- name: "PHP Configuration override for FPM"
+  template: src=configuration-fpm.ini.j2 dest="{{ php_fpm_conf_file }}"
+  notify: "Reload FPM"
+  tags:
+    - install
+    - update_config
+
+- name: "PHP Configuration override for CLI (Debian only)"
+  template: src=configuration-cli.ini.j2 dest="{{ php_cli_conf_file }}"
+  notify: "Reload FPM"
+  when: ansible_os_family == 'Debian'
+  tags:
+    - install
+    - update_config
+
+- name: "Run PHP-FPM"
+  service: name="{{ php_service_name }}" state=started enabled=true
+  tags:
+    - install
+

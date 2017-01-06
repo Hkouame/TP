@@ -1,0 +1,76 @@
+---
+# tasks file for kafka
+# Include per-environment variables
+- include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+        - '{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml'           # CentOS-6.5
+        - '{{ ansible_os_family }}-{{ ansible_distribution_version }}.yml'              # RedHat-6.5
+        - '{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml'     # CentOS-6
+        - '{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml'        # RedHat-6
+        - '{{ ansible_distribution }}.yml'                                              # CentOS
+        - '{{ ansible_os_family }}.yml'                                                 # RedHat
+        - 'main.yml'
+      paths: '../vars'
+
+- include: "{{ ansible_os_family }}.yml"
+
+- include: firewall.yml
+  when: firewall_setup == True
+
+- name: "Main | Install package"
+  package: name=confluent-kafka-{{ kafka_scala_version }}
+
+- include: zookeeper.yml
+
+- include: kafka.yml
+
+- name: "Main | Add zookeeper in kafka group"
+  user:
+   name: zookeeper
+   group: kafka
+   append: yes
+
+- name: "Main | Allow kafka group member write in log and create if folder not exist"
+  file:
+   path: /var/log/kafka
+   mode: "u=rwx,g=rwx,o=rx"
+   owner:  kafka
+   group: kafka
+   state: directory
+
+- name: " Main | Start and enable zookeeper "
+  service:
+    name:    zookeeper
+    state:   started
+    enabled: yes
+
+- name: "Main | Wait_for zookeeper is started"
+  wait_for:
+   port: "{{ zk_client_port }}"
+   host: localhost
+   connect_timeout: 120
+   
+
+- name: "Main | Start and enable kafka"
+  service:
+    name:    kafka
+    state:   started
+    enabled: yes
+
+- name: "Main | Wait Kafka and Zookeeper is ready"
+  wait_for:
+    timeout: 120
+
+- name: "Main | Create Kafka topics"
+  command: "kafka-topics --create
+            --zookeeper {{ item.value.zookeeper }}
+            --replication-factor {{ item.value.replication_factor | int }}
+            --partitions {{ item.value.partition | int }}
+            --topic {{ item.key }}"
+  when: kafka_topics is defined
+  with_dict: "{{ kafka_topics | default({}) }}"
+  register: kafka_topics_create
+  failed_when: "kafka_topics_create.rc != 0 and not 'already exists' in kafka_topics_create.stdout"
+  tags:
+   - topic

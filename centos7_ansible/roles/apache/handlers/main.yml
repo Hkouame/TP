@@ -1,0 +1,14 @@
+# Role: ansible-apache
+# Author: Aurélien FOUCRET
+# Description: Apache webserver handler
+
+- name: "Restart Apache"
+  service:
+    name: "{{ apache2_service_name }}"
+    state: restarted
+  register: apache_restarted
+
+- name: "Reload Apache"
+  service:
+    name: "{{ apache2_service_name }}"
+    state: reloaded

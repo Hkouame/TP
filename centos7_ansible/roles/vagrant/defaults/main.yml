@@ -1,0 +1,7 @@
+---
+vagrant_version: 1.8.7
+vagrant_plugins:
+#  - vagrant-libvirt
+#  - vagrant-triggers
+vagrant_home: ~/.vagrant.d
+vagrant_deploy_scripts: true

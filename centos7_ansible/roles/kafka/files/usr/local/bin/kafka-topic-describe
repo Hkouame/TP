@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+if [[ $# -eq 0 ]]; then
+        echo "syntax : ${0##*/} <topic-name>"
+else
+        kafka-topics --describe --zookeeper localhost:2181 --topic $1
+fi

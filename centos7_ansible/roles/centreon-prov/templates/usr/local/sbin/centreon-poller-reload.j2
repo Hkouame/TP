@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# Global parameters
+CLAPI_CONF={{ centreon_clapi_conf }}
+CLAPI_BIN={{ centreon_clapi_bin }}
+
+# Load CLAPI configuration file
+if [ -r $CLAPI_CONF ]; then
+    source $CLAPI_CONF
+else
+    echo "Can't load CLAPI configuration file: $CLAPI_CONF"
+    exit 1
+fi
+
+CLAPI_OPT="-u $CLAPI_USER -p $CLAPI_PASS"
+CLAPI_CMD="$CLAPI_BIN $CLAPI_OPT"
+
+poller_reload () {
+     if [ -z $1 ]; then
+         echo "No poller to reload specified"
+         exit 1
+     fi
+     local poller_name=$1
+
+     echo -e "\nReload Centreon Engine configuration for poller $poller_name"
+
+     $CLAPI_CMD -a POLLERGENERATE -v $poller_name && \
+     $CLAPI_CMD -a POLLERTEST -v $poller_name && \
+     $CLAPI_CMD -a CFGMOVE -v $poller_name && \
+     $CLAPI_CMD -a POLLERRESTART -v $poller_name && \
+     echo "Centreon Engine Successfully Reload"
+}
+
+
+# If no poller specified, reload all poller
+if [ $# -eq 0 ]; then
+     for poller in `$CLAPI_CMD -a POLLERLIST | grep -v "Return code end" | awk '{print $2}'`
+     do
+         poller_reload "$poller"
+     done
+else
+     name=$1
+     $CLAPI_CMD -a POLLERLIST | egrep -q "$name$"
+
+     if [ $? -ne 0 ]; then
+         echo "No poller $name find"
+         exit 1
+     fi
+
+     poller_reload "$name"
+fi
+

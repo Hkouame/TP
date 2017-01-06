@@ -1,0 +1,43 @@
+{% set vhost_name    = item.value.vhost_name|default(item.key) %}
+{% set vhost_params  = item.value %}
+{% set ssl_enabled   = vhost_params.ssl is defined and vhost_params.ssl.enabled|default(false) %}
+{% set document_root = vhost_params.document_root|default('/var/www/' + vhost_name) + '/htdocs' %}
+{% set _logpath = vhost_params.document_root|default('/var/www/' + vhost_name) + '/logs' %}
+<VirtualHost *:{{apache2_ssl_port if ssl_enabled else apache2_port}}>
+
+{% if ssl_enabled %}
+# SSL Enabled
+    SSLEngine             on
+    SSLCertificateFile    {{vhost_params.ssl.certificate_file|default(apache2_default_ssl_cert)}}
+    SSLCertificateKeyFile {{vhost_params.ssl.certificate_key_file|default(apache2_default_ssl_key)}}
+{% endif %}
+    ServerName   {{vhost_params.server_name|default(ansible_fqdn)}}
+{% for alias in vhost_params.server_aliases|default([]) %}
+    ServerAlias  {{alias}}
+{% endfor %}
+    DocumentRoot {{document_root}}
+{% if vhost_params.environment_vars is defined %}
+    {% for env_var_name, env_var_value in vhost_params.environment_vars.iteritems()|default([]) %}
+    SetEnv {{env_var_name}} {{env_var_value}}
+    {% endfor %}
+{% endif %}
+{% if  apache2_version == "2.4" %}
+
+    <Directory {{document_root}}>
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+{% else %}
+    <Directory {{document_root}}>
+          Options -Indexes FollowSymLinks
+          AllowOverride All
+          Order allow,deny
+          Allow from all
+    </Directory>
+
+{% endif %}
+    ErrorLog    {{ _logpath }}/error.log
+    CustomLog   {{ _logpath }}/access.log combined
+    
+</VirtualHost>

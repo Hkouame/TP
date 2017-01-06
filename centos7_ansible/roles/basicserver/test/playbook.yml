@@ -1,0 +1,8 @@
+- hosts: all
+  vars:
+    delivery_users:
+      - name: smile
+        authorized_keys:
+          - "{{ lookup('ldapkey', 'mabes') }}"
+  roles:
+        - role: ansible-basicserver

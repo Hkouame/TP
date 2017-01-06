@@ -1,0 +1,86 @@
+---
+
+- name: "Drop existing database"
+  mysql_db: name={{item.value.db_name}} state=absent
+  when: forbid_update_data is not defined and allow_update_data is defined
+  with_dict: '{{ mysql_databases }}'
+  tags:
+    - install
+    - update_data
+    
+- name: "Create databases"
+  mysql_db: 
+    name={{item.value.db_name}} 
+    state=present 
+    collation={{item.value.collation|default(mysql_db_default_collation)}} 
+    encoding={{item.value.encoding|default(mysql_db_default_encoding)}}
+  with_dict: '{{ mysql_databases }}'
+  register: created_dbs
+  tags:
+    - install
+    - update_data
+
+- name: "Ensure dump download directory exists"
+  file: name=/data/dump/{{item.value.db_name}} state=directory
+  when: item.value.sync_source is defined
+  with_dict: '{{ mysql_databases }}'
+  tags:
+    - install
+    - update_data
+
+- name: "Retrieve MySQL dump (from SSH)"
+  shell: "{%set db = item.db%}{%set sync_source=item.item.value.sync_source%}scp {{ssh_args|default('')}} {{sync_source.user}}@{{sync_source.host}}:{{sync_source.path}}/{{sync_source.file}} /data/dump/{{db}}/"
+  when: item.changed and item.item.value.sync_source is defined and item.item.value.sync_source.host is defined
+  with_items: '{{created_dbs.results}}'
+  tags:
+    - install
+    - update_data
+
+- name: "Retrieve MySQL dump (from URL)"
+  get_url: dest="/data/dump/{{item.db}}/{{item.item.value.sync_source.file}}" url="{{ item.item.value.sync_source.url }}"
+  when: item.changed and item.item.value.sync_source is defined and item.item.value.sync_source.url is defined
+  with_items: '{{created_dbs.results}}'
+  tags:
+    - install
+    - update_data
+
+- name: "Retrieve MySQL dump (from local copy)"
+  copy: src="{{item.item.value.sync_source.src}}" dest="/data/dump/{{item.db}}/{{item.item.value.sync_source.file}}"
+  when: item.changed and item.item.value.sync_source is defined and item.item.value.sync_source.src is defined
+  with_items: '{{created_dbs.results}}'
+  tags:
+    - install
+    - update_data
+
+- name: "Import MySQL dump"
+  mysql_db:
+    name="{{item.db}}"
+    state=import 
+    target="/data/dump/{{item.db}}/{{item.item.value.sync_source.file}}"
+  when: item.changed and item.item.value.sync_source is defined
+  with_items: '{{created_dbs.results}}'
+  tags:
+    - install
+    - update_data
+
+- name: "Drop empty MySQL users"
+  mysql_user:
+    name:  ''
+    state: absent
+    host:  "{{ item }}"
+  with_items:
+    - localhost
+    - "{{ ansible_hostname }}"
+  tags:
+    - install
+    - update_data
+    - update_config
+
+- name: "Create MySQL users"
+  mysql_user: name={{item.value.user}} host='%' password={{item.value.password}} priv={{item.value.db_name}}.*:ALL state=present
+  with_dict: '{{ mysql_databases }}'
+  tags:
+    - install
+    - update_data
+    - update_config
+

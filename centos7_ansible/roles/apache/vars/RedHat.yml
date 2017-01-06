@@ -1,0 +1,30 @@
+apache2_default_root: /var/www/html
+apache2_default_packages:
+  - httpd
+apache2_modules_packages:
+  - module: security2
+    packages:
+      - mod_security
+      - mod_security_crs
+  - module: perl
+    packages:
+      - mod_perl
+  - module: ssl
+    packages:
+      - mod_ssl
+  - module: php
+    packages:
+      - php
+apache2_service_name: httpd
+apache2_config_file: /etc/httpd/conf/httpd.conf
+apache2_config_file_ssl: /etc/httpd/conf.d/ssl.conf
+apache2_confd_dir: /etc/httpd/conf.d
+apache2_vhosts_dir: /etc/httpd/conf.d
+apache2_binary: httpd
+apache2_log_owner: root
+apache2_log_group: root
+apache2_user: apache
+apache2_group: apache
+apache2_module_security2_conf_file: /etc/httpd/conf.d/mod_security.conf
+apache2_default_ssl_cert: /etc/pki/tls/certs/localhost.crt
+apache2_default_ssl_key: /etc/pki/tls/private/localhost.key

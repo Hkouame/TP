@@ -1,0 +1,2 @@
+#!/bin/bash
+radclient -xs -f /usr/local/bin/acct_start.txt localhost acct "w54Ru0oZeUL8EgIU"

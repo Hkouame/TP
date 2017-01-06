@@ -1,0 +1,10 @@
+---
+- name: remove old java application
+  file:
+    path: "{{ tomcat_webapp_path }}/{{ java_app.name }}"
+    state: absent
+
+- name: restart tomcat
+  service:
+    name: "{{ tomcat_service_name }}"
+    state: restarted

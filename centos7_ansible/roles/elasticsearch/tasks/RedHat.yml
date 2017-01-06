@@ -1,0 +1,23 @@
+---
+- name: RedHat | Add elasticsearch repository GPG key
+  rpm_key:
+   state:  present
+   key:    https://packages.elastic.co/GPG-KEY-elasticsearch
+
+- name: RedHat | Add elasticsearch repository
+  template:
+   src:    elasticsearch.repo.j2
+   dest:   /etc/yum.repos.d/elasticsearch.repo
+   owner:  root
+   group:  root
+   mode:   0644
+
+- name: RedHat | Add curator repository
+  template:
+    src:   curator.repo.j2
+    dest:  /etc/yum.repos.d/curator.repo
+    owner: root
+    group: root
+    mode:  0644
+  when: es_install_curator == true or
+        es_install_admin_scripts == true

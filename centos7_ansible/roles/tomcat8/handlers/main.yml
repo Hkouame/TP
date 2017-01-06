@@ -1,0 +1,10 @@
+---
+# handlers file for tomcat
+- name: "Restart Tomcat"
+  service: name="tomcat" state=restarted
+
+- name: "Restart Firewalld"
+  service: name="firewalld" state=restarted
+
+- name: "Systemctl daemon-reload"
+  command: 'systemctl daemon-reload'

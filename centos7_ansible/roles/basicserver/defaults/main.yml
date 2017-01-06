@@ -1,0 +1,11 @@
+---
+promptcolor: green
+promptbold: "{{ ansible_virtualization_role==\"host\" }}"
+
+generate_hosts_from_inventory: true
+main_interface: "{{ansible_default_ipv4}}"
+install_smile_certificate: true
+extra_packages: []
+install_sudoers: false
+sudo_allowed_root_commands: []
+sudo_allowed_users: []

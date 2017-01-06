@@ -1,0 +1,16 @@
+galaxy_info:
+  author: Jean-Vincent KASSI
+  description: Set's up the csync2 lsyncd solution
+  company: SMILE CI
+  license: license (GPLv2, CC-BY, etc)
+  min_ansible_version: 1.2
+  platforms:
+    - name: EL
+      versions:
+        - all
+
+  galaxy_tags:
+    - csync2
+    - lsync2
+    - synchronisation
+dependencies: []

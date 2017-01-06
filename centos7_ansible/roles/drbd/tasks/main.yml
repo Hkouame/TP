@@ -1,0 +1,68 @@
+---
+# tasks file for drbd
+# Include per-environment variables
+- include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+        - '{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml'           # CentOS-6.5
+        - '{{ ansible_os_family }}-{{ ansible_distribution_version }}.yml'              # RedHat-6.5
+        - '{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml'     # CentOS-6
+        - '{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml'        # RedHat-6
+        - '{{ ansible_distribution }}.yml'                                              # CentOS
+        - '{{ ansible_os_family }}.yml'                                                 # RedHat
+        - 'main.yml'
+      paths: '../vars'
+
+- include: "{{ ansible_os_family}}.yml"
+
+- name: main | Install DRBD
+  package:
+    name:  "{{ item }}"
+    state: present
+  with_items: "{{ drbd_packages_name }}"
+
+- name: main | Deploy administration scripts
+  copy:
+    src:   usr/local/sbin/drbd-setup
+    dest:  /usr/local/sbin
+    owner: root
+    group: root
+    mode:  0750
+
+- name : main | Deploy global configuration
+  copy:
+    src:   etc/drbd/global_common.conf
+    dest:  /etc/drbd.d
+    owner: root
+    group: root
+    mode:  0644
+  notify:
+    - Restart DRBD
+
+#- debug:
+#    msg: "ipaddress {{ hostvars['mariadb-2']['ansible_eth0']['ipv4']['address'] }}"
+
+- name: main | Deploy resource configuration
+  template:
+    src:   etc/drbd/template.res.j2
+    dest:  /etc/drbd.d/{{ drbd_res_name }}.res
+    owner: root
+    group: root
+    mode:  0644
+  notify:
+    - Restart DRBD
+
+- name: main | Enable drbd service
+  service:
+    name:    drbd
+    state:   started
+    enabled: yes
+
+- name: main | Check if DRBD is already initialize
+  command: drbdadm role all
+  changed_when: false
+  register: drbd_init
+
+- name: main | Initialize DRBD replication
+  command: "/usr/local/sbin/drbd-setup {{ drbd_res_name }} {{ drbd_primary_host }}"
+  when: "drbd_init.stdout.find('Primary') == -1"

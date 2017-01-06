@@ -1,0 +1,14 @@
+---
+- name: kvm | Install KVM
+  package:
+    name:  "{{ item }}"
+    state: installed
+  with_items:
+    - "{{ kvm_packages }}"
+
+- name: kvm | Install KVM tools
+  package:
+    name:  "{{ item }}"
+    state: installed
+  with_items:
+    - "{{ kvm_packages_tools }}"

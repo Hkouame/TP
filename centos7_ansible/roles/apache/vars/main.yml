@@ -1,0 +1,2 @@
+# Internal variable to simplify tasks
+apache2_all_modules: "{{ apache2_modules + apache2_extra_modules|default([]) }}"

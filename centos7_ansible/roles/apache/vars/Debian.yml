@@ -1,0 +1,29 @@
+apache2_default_root: "/var/www/{% if apache2_version == '2.4' %}html/{% endif %}"
+apache2_packages:
+  - apache2
+apache2_modules_packages:
+  - module: auth_cas
+    packages:
+      - libapache2-mod-auth-cas
+  - module: perl
+    packages:
+      - libapache2-request-perl
+  - module: security2
+    packages:
+      - libapache2-mod-security2
+      - modsecurity-crs
+  - module: php5
+    packages:
+      - libapache2-mod-php5
+apache2_service_name: apache2
+apache2_config_file: /etc/apache2/apache2.conf
+apache2_confd_dir: "{% if ansible_distribution_major_version|int >=8 %}/etc/apache2/conf-available{% else %} /etc/apache2/conf.d{% endif %}"
+apache2_vhosts_dir: "/etc/apache2/sites-available"
+apache2_binary: apache2
+apache2_log_owner: root
+apache2_log_group: adm
+apache2_user: www-data
+apache2_group: www-data
+apache2_module_security2_conf_file: /etc/modsecurity/modsecurity.conf
+apache2_default_ssl_cert: /etc/ssl/certs/ssl-cert-snakeoil.pem
+apache2_default_ssl_key: /etc/ssl/private/ssl-cert-snakeoil.key

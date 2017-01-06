@@ -1,0 +1,8 @@
+client localhost {
+	ipaddr = {{ freerad_client_ipaddr }}
+	proto = *
+	secret = {{ freerad_client_secret }}
+	virtual_server = {{ freerad_client_vhost }}
+	require_message_authenticator = no
+	nas_type = other
+}

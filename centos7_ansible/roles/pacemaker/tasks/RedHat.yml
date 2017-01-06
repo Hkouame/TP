@@ -1,0 +1,9 @@
+---
+# tasks file for RedHat
+- name: RedHat | Set firewall rules
+  firewalld:
+    service:   high-availability
+    permanent: true
+    state:     enabled
+    immediate: yes
+  when: pcmk_fw_enable

@@ -1,0 +1,14 @@
+- hosts: all
+  vars:
+    nginx_vhosts:
+      test:
+          document_root: /var/www/my_app
+          server_name: "{{ inventory_hostname }}"
+  roles:
+    - role: ansible-nginx
+  post_tasks:
+    - wait_for: port=80 timeout=20
+    - copy: content="helloworld" dest=/var/www/my_app/index.html
+    - local_action: uri url=http://"{{ inventory_hostname }}" return_content=yes
+      register: webpage
+      failed_when: "'helloworld' not in webpage.content"

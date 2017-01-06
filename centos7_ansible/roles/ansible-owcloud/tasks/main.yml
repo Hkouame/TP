@@ -1,0 +1,42 @@
+---
+# tasks file for ansible-owcloud
+- name: install owcloud dependences
+  yum: name={{ item }} state=latest
+  with_items: "{{ owcloud_dependences }}"
+
+
+- name: install  firewall in the  server
+  yum: name=firewalld state=latest
+
+- name: restart firewalld
+  service: name=firewalld state=restarted
+
+- name: enable https and http
+  firewalld:  zone=public service={{ item }} permanent=true state=enabled
+  with_items: 
+   - https
+   - http
+
+- name: enable httpd and mariadb
+  service: name={{ item }} enabled=yes
+  with_items:
+   - httpd
+   - mariadb
+
+- name: restart apache and mariadb
+  service: name={{ item }} state=restarted
+  with_items:
+  - httpd
+  - mariadb
+
+- name: untar  owcloud into /var/www/html
+  unarchive: src=files/owncloud-9.1.1.tar.tgz    dest=/var/www/html owner=apache group=apache
+
+- name: congig /etc/httpd/conf.d/owncloud.conf
+  template: src="config.conf.j2" dest="/etc/httpd/conf.d/owncloud.conf"
+
+- name: restart httpd 
+  service: name=httpd state=restarted
+
+
+

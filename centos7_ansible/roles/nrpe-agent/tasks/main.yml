@@ -1,0 +1,37 @@
+---
+# include per-environment variables
+- include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+        - '{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml'           # CentOS-6.5
+        - '{{ ansible_os_family }}-{{ ansible_distribution_version }}.yml'              # RedHat-6.5
+        - '{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml'     # CentOS-6
+        - '{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml'        # RedHat-6
+        - '{{ ansible_distribution }}.yml'                                              # CentOS
+        - '{{ ansible_os_family }}.yml'                                                 # RedHat
+        - 'main.yml'
+      paths: '../vars'
+
+- include: '{{ ansible_os_family }}.yml'
+
+- name: main | Install NRPE
+  package:
+    name:  "{{ item }}"
+    state: installed
+  with_items:
+    - "{{ nrpe_packages }}"
+
+- include: selinux.yml
+  when: nrpe_enable_sepolicy and ansible_os_family == 'RedHat'
+
+- name: main | Configure NRPE
+  template:
+    src:  etc/nagios/nrpe.cfg.j2
+    dest: /etc/nagios/nrpe.cfg
+  notify: Restart NRPE
+
+- name: main | Start NRPE
+  service:
+    name:    "{{ nrpe_service }}"
+    state:   started
+    enabled: yes

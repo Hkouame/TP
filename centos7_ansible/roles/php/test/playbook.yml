@@ -1,0 +1,10 @@
+- hosts: all
+  roles:
+        - role: ansible-php
+  post_tasks:
+    - package: name=python-httplib2 state=installed
+    - wait_for: host=localhost port=80
+    - copy: content="<?php phpinfo();" dest="/var/www/{% if ansible_distribution_release != "wheezy" %}html/{% endif %}info.php"
+    - uri: url="http://localhost/info.php" return_content=yes
+      register: result
+      failed_when: '"PHP License" not in result.content'

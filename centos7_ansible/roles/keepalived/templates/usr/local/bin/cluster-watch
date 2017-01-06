@@ -1,0 +1,2 @@
+#!/bin/bash
+watch -c -n 1 --differences {{ keepalived_bindir }}/cluster-cmd

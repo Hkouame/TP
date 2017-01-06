@@ -1,0 +1,9 @@
+START=yes
+NFILES=131072
+MEMLOCK=82000
+DAEMON_OPTS="-a :{{ varnish_port }} \
+             -T localhost:6082 \
+             -f /etc/varnish/{{ varnish_vcl_name }}.vcl \
+             -S /etc/varnish/secret \
+             -s malloc,{{ varnish_memory_mb }}m {{ varnish_additional_opts }}"
+

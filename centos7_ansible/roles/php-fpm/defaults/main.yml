@@ -1,0 +1,14 @@
+---
+  
+# Package management
+php_packages:
+  - "{{ php_fpm_package_name }}"
+  - "{{ php_cli_package_name }}"
+
+php_extension_packages: []
+  
+php_extra_packages: []
+
+php_settings_all: []
+php_settings_cli: []
+php_settings_fpm: []

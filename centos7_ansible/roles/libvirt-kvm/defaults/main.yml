@@ -1,0 +1,12 @@
+---
+# defaults file for libvirt-kvm
+libvirt_network:
+#  - client: smile
+#    vlanid: 101
+#    netif: em3
+#    ipaddr: 10.1.1.22
+#    prefix: 24
+libvirt_pools:
+#  - name: hdd
+#    path: /var/lib/libvirt/pool/hdd
+

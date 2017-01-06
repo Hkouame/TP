@@ -1,0 +1,13 @@
+- name: RedHat | Add logstash repository GPG key
+  rpm_key:
+   state: present
+   key:   https://packages.elastic.co/GPG-KEY-elasticsearch
+
+- name: RedHat | Add repository
+  template: 
+   src:   logstash.repo.j2 
+   dest:  /etc/yum.repos.d/logstash.repo 
+   owner: root 
+   group: root 
+   mode:  0644
+

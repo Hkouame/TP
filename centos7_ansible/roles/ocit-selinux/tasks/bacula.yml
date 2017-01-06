@@ -1,0 +1,33 @@
+# Bacula
+- name: bacula | Copy SElinux module
+  copy:
+    src:   "{{ item }}"
+    dest:  /var/tmp/
+    owner: root
+    group: root
+  with_items:
+    - bacula-fd.pp
+  register: bacula_module
+
+- name: bacula | Check SELinux module
+  shell: "semodule -l | grep -q ^bacula-fd && echo found || echo notfound"
+  changed_when: false
+  register: bacula_semod
+
+- name: bacula | Apply SELinux module
+  script: se_bacula.sh
+  when: "'notfound' in bacula_semod.stdout or bacula_module.changed"
+
+- name: bacula | Configuration firewall rules
+  firewalld:
+    port:      9102/tcp
+    permanent: true
+    state:     enabled
+    immediate: yes
+
+- name: bacula | Restart service
+  service:
+    name:    bacula-fd
+    state:   restarted
+    enabled: yes
+  when: "'notfound' in bacula_semod.stdout or bacula_module.changed"

@@ -1,0 +1,40 @@
+---
+- name: prompt_script | Enable EPEL Repo
+  package: 
+   name: epel-release
+
+- name: prompt_script | Install JQ
+  package: 
+   name: jq
+
+- name: prompt_script | Copy promp script
+  copy:
+   src: usr/local/bin/es-cluster-state
+   dest: /usr/local/bin/es-cluster-state
+   mode: "u=rwx,g=rx,o=rx"
+
+- name: prompt_script | Ensure /etc/bash.bashrc.d exist
+  file:
+   path: /etc/bash.bashrc.d
+   state: directory
+   owner: root
+   group: root
+   mode: u=rwx,g=rx,o=rx
+
+- name: prompt_script | Include /etc/bash.bashrc.d in /etc/bashrc
+  blockinfile:
+   dest: /etc/bashrc
+   block:  |
+     #Include file in /etc/bash.bashrc.d
+     [[ -x /etc/bash.bashrc.d ]] &&
+     for FILE in /etc/bash.bashrc.d/* ; do
+         source $FILE ;
+         done;
+
+- name: prompt-script | Setup PS1
+  lineinfile:
+   dest: /etc/bash.bashrc.d/es-status
+   line: 'export PS1="$(es-cluster-state)$PS1"'
+   create: yes
+   state: present
+   insertafter: EOF

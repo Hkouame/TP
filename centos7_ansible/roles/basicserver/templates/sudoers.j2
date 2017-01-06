@@ -1,0 +1,5 @@
+Runas_Alias     ANSIBLESERVERACCOUNTS={{ sudo_allowed_users | join(', ')}}
+Cmnd_Alias      ANSIBLESERVICERESTART={{ sudo_allowed_root_commands | join(', ')}}
+smile ALL=(ANSIBLESERVERACCOUNTS) NOPASSWD: ALL
+smile ALL=(root) NOPASSWD: ANSIBLESERVICERESTART
+

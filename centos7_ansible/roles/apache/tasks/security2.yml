@@ -1,0 +1,57 @@
+# Description: ModSecutiy2 config
+
+---
+
+- name: "Copy ModSecurity recommended config file (Debian)"
+  command: "cp /etc/modsecurity/modsecurity.conf-recommended {{ apache2_module_security2_conf_file }}"
+  args:
+    creates: "{{ apache2_module_security2_conf_file }}"
+  when: ansible_os_family == 'Debian'
+  notify:
+    - "Reload Apache"
+  tags:
+    - install
+    - update_config
+
+- name: "ensure log directory exists"
+  file: path="{{ apache2_module_security2_log_file|dirname }}" state=directory owner=root group=adm mode=0750
+  notify:
+    - "Reload Apache"
+  tags:
+    - install
+    - update_config
+
+- name: "Activate CRS (Debian)"
+  copy: dest="/etc/modsecurity/crs.conf" content="IncludeOptional /usr/share/modsecurity-crs/*.conf\nIncludeOptional /usr/share/modsecurity-crs/base_rules/*.conf\n"
+  when: ansible_os_family == 'Debian'
+  notify:
+    - "Reload Apache"
+  tags:
+    - install
+    - update_config
+
+- name: "Set the ModSecurity blocking policy"
+  replace: dest="{{ apache2_module_security2_conf_file }}" regexp="^(\s*SecRuleEngine)\s.*$" replace="\1 {{ apache2_module_security2_mode }}"
+  notify:
+    - "Reload Apache"
+  tags:
+    - install
+    - update_config
+
+- name: "Set the ModSecurity index log file"
+  replace: dest="{{ apache2_module_security2_conf_file }}" regexp="^(\s*SecAuditLog)\s.*$" replace="\1 {{ apache2_module_security2_log_file }}"
+  notify:
+    - "Reload Apache"
+  tags:
+    - install
+    - update_config
+
+- name: "Disable sharing of information about our usage of ModSecurity"
+  replace: dest="{{ apache2_module_security2_conf_file }}" regexp="SecStatusEngine On" replace="SecStatusEngine Off"
+  notify:
+    - "Reload Apache"
+  tags:
+    - install
+    - update_config
+
+# Logrotate

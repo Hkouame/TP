@@ -1,0 +1,39 @@
+# interface: interface to listen
+# virtual_router_id: VRRP router id the instance belong
+# state: default state on start (EQUAL|MASTER|BACKUP)
+# priority: use for electing new node on master failure
+
+# Sync group
+vrrp_sync_group VGROUP {
+  group {
+{% for key, value in keepalived_vrrp_instance.iteritems() %}
+    {{ key }}
+{% endfor %}
+  }
+{% if keepalived_deploy_adminscript == true %}
+  notify_master "/bin/echo master > {{ keepalived_tempdir }}/cluster.state"
+  notify_backup "/bin/echo backup > {{ keepalived_tempdir }}/cluster.state"
+  notify_fault  "/bin/echo fault  > {{ keepalived_tempdir }}/cluster.state"
+{% endif %}
+}
+{% for key, value in keepalived_vrrp_instance.iteritems() %}
+
+# VRRP Instance {{ key }}
+vrrp_instance {{ key }} {
+  interface {{ value.interface }}
+  state EQUAL
+  virtual_router_id {{ value.vrid }}
+  priority 100
+
+  authentication {
+    auth_type PASS
+    auth_pass {{ value.pass }}
+  }
+
+  virtual_ipaddress {
+{% for vip in value.vip %}
+    {{ vip }}
+{% endfor %}
+  }
+}
+{% endfor %}

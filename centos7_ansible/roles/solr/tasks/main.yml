@@ -1,0 +1,57 @@
+---
+- name: "Download needed libraries"
+  get_url:
+    url: "{{ item }}"
+    dest: "{{ genericservice_root }}/{{ solr.subpath }}/server/lib/"
+  with_items: "{{ solr.needed_libraries|default([]) }}"
+  notify:
+    - restart {{ solr_service_name }}
+
+- name: "Check solr server directory"
+  stat:
+    path: "{{ genericservice_root }}/{{ solr.subpath }}/server/solr/solr.xml"
+  register: solr_xml
+
+- name: "Copy example directory (for SolR 4.X)"
+  shell: "cp -R example/* server/"
+  args:
+    chdir: "{{ genericservice_root }}/{{ solr.subpath }}"
+  when: solr_xml.stat.exists == false
+
+- name: "Copy example directory - set directory in SolR bin"
+  replace:
+    dest: "{{ genericservice_root }}/{{ solr.subpath }}/bin/solr"
+    regexp: 'DEFAULT_SERVER_DIR\=\$SOLR_TIP\/example'
+    replace: 'DEFAULT_SERVER_DIR=$SOLR_TIP/server'
+  when: solr_xml.stat.exists == false
+
+- name: "Copy example directory - set permissions"
+  file:
+    path: "{{ genericservice_root }}/{{ solr.subpath }}/server/solr"
+    owner: "{{ solr_service_name }}"
+    group: "{{ solr_service_name }}"
+    recurse: yes
+    state: directory
+  when: solr_xml.stat.exists == false
+
+- name: "Copy example directory - remove example* directories"
+  shell: "rm -rf server/example*"
+  args:
+    chdir: "{{ genericservice_root }}/{{ solr.subpath }}"
+  when: solr_xml.stat.exists == false
+
+- name: "Copy config"
+  copy:
+    src: "{{ item }}"
+    dest: "{{ genericservice_root }}/{{ solr.subpath }}/server/solr"
+    owner: "{{ solr_service_name }}"
+    group: "{{ solr_service_name }}"
+  with_items: "{{ solr.config_directories|default([]) }}"
+  notify:
+    - restart {{ solr_service_name }}
+
+- name: Start service
+  service:
+    name: "{{ solr_service_name }}"
+    state: started
+    enabled: yes

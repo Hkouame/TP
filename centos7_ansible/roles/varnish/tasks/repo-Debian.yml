@@ -1,0 +1,15 @@
+---
+# From https://www.varnish-cache.org/installation/debian
+- name: Install dependancies
+  apt: name="apt-transport-https" state=installed
+
+- name: Get Varnish PGP key
+  apt_key: url="https://repo.varnish-cache.org/GPG-key.txt" state=present
+
+- name: Add Varnish APT repository (Debian)
+  apt_repository: repo="deb https://repo.varnish-cache.org/debian/ {{ ansible_distribution_release }} varnish-{{ varnish_use_repo }}" state=present
+  when: ansible_distribution == "Debian"
+
+- name: Add Varnish APT repository (Ubuntu)
+  apt_repository: repo="deb https://repo.varnish-cache.org/ubuntu/ {{ ansible_distribution_release }} varnish-{{ varnish_use_repo }}" state=present 
+  when: ansible_distribution == "Ubuntu"

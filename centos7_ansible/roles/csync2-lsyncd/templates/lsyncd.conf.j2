@@ -1,0 +1,27 @@
+settings {
+        logident        = "lsyncd",
+        logfacility     = "user",
+        logfile         = "{{ lsyncd_log_file }}",
+        statusFile      = "{{ lsyncd_status_file }}",
+        statusInterval  = 10
+}
+
+{% for csync2_group in csync2_groups -%}
+{% if lsyncd_enabled|default(false) -%}
+{{ csync2_group.name }} = {
+  delay = {{ lsyncd_delay }},
+  maxProcesses = {{ lsyncd_max_processes }},
+  onCreate = "nice /usr/sbin/csync2 -x -C {{ csync2_group.name }}",
+  onModify = "nice /usr/sbin/csync2 -x -C {{ csync2_group.name }}",
+  onDelete = "nice /usr/sbin/csync2 -x -C {{ csync2_group.name }}",
+  onStartup = "nice /usr/sbin/csync2 -x -C {{ csync2_group.name }}"
+}
+
+{% for include in csync2_group.includes -%}
+sync {
+  {{ csync2_group.name }},
+  source = "{{ include }}"
+}
+{% endfor -%}
+{% endif -%}
+{% endfor -%}

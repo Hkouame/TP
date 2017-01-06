@@ -1,0 +1,24 @@
+---
+- name: RedHat | Enable Smile CentOS repository
+  copy:
+    src:  etc/yum.repos.d/CentOS-Smile.repo
+    dest: /etc/yum.repos.d/CentOS-Smile.repo
+
+- name: RedHat | Install dependencies
+  yum:
+    name: "{{ item }}"
+    update_cache: yes
+  with_items:
+    - epel-release
+    - sqlite-devel
+    - xinetd
+    - openssl
+
+- name: RedHat | Set firewall rules
+  firewalld:
+    port: "{{item}}/tcp"
+    permanent: true
+    state: enabled
+    immediate: yes
+  with_items:
+    - 30865

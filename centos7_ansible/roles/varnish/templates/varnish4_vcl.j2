@@ -1,0 +1,6 @@
+vcl 4.0;
+backend default {
+    .host = "{{ varnish_backend_host }}";
+    .port = "{{ varnish_backend_port }}";
+}
+

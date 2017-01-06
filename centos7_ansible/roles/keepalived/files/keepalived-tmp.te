@@ -1,0 +1,13 @@
+
+module keepalived-tmp 1.0;
+
+require {
+	type tmp_t;
+	type keepalived_t;
+	class dir { write add_name };
+	class file { write create open };
+}
+
+#============= keepalived_t ==============
+allow keepalived_t tmp_t:dir { write add_name };
+allow keepalived_t tmp_t:file { write create open };

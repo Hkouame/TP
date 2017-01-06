@@ -1,0 +1,18 @@
+- name: install_hatop | Install hatop
+  copy:
+    src:  usr/local/bin/hatop
+    dest: /usr/local/bin/hatop
+    mode: 0755
+
+- name: install_hatop | Create /root/.bashrc.d
+  file:
+    path:  /root/.bashrc.d
+    state: directory
+
+- name: install_hatop | Copy hatop alias
+  template:
+    src:   root/bashrc.d/hatop.j2
+    dest:  /root/.bashrc.d/hatop
+    owner: root
+    group: root
+    mode:  0640

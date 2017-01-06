@@ -1,0 +1,24 @@
+# Role: ansible-apache
+# Author: Aurélien FOUCRET
+# Description: Apache default configuration
+
+apache2_modules:
+  - headers
+  - deflate
+  - rewrite
+  - expires
+  - ssl
+
+apache2_disabled_default:
+  - "000-default.conf"
+  - "default.conf"
+  - "default_ssl.conf"
+
+apache2_ports_template: ports.conf.j2
+
+apache2_host: "*"
+apache2_port: "{% if varnish_port is defined %}81{% else %}80{% endif %}"
+apache2_ssl_port: "443"
+
+apache2_module_security2_mode: DetectionOnly
+apache2_module_security2_log_file: /var/log/mod_security/modsec_audit.log

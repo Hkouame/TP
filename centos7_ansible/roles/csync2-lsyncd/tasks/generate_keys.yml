@@ -1,0 +1,58 @@
+---
+- name: generate_keys | Generate csync2 key
+  command: "/usr/sbin/csync2 -k {{ csync2_conf_dir }}/csync2.key"
+  args:
+    creates: "{{ csync2_key_path }}"
+  notify: restart csync2
+  when:
+    - inventory_hostname == csync2_hosts[0]
+
+- name: generate_keys | Generate csync2 ssl key
+  command: "/bin/openssl genrsa -out {{ csync2_conf_dir }}/csync2_ssl_key.pem 1024"
+  args:
+    creates: "{{ csync2_conf_dir }}/csync2_ssl_key.pem"
+  when:
+    - inventory_hostname == csync2_hosts[0]
+
+- name: generate_keys | Generate csync2 ssl csr
+  command: "/bin/openssl req -subj \"/C=CI/ST=Ivory Coast/L=Abidjan/O=Smile CI/OU=DSI/CN=smile.ci\" -new -key {{ csync2_conf_dir }}/csync2_ssl_key.pem -out {{ csync2_conf_dir }}/csync2_ssl_cert.csr"
+  args:
+    creates: "{{ csync2_conf_dir }}/csync2_ssl_cert.csr"
+  when:
+    - inventory_hostname == csync2_hosts[0]
+
+- name: generate_keys | Generate csync2 ssl crt
+  command: "/bin/openssl x509 -req -days 6000 -in {{ csync2_conf_dir }}/csync2_ssl_cert.csr -signkey {{ csync2_conf_dir }}/csync2_ssl_key.pem -out {{ csync2_conf_dir }}/csync2_ssl_cert.pem"
+  args:
+    creates: "{{ csync2_conf_dir }}/csync2_ssl_cert.pem"
+  when:
+    - inventory_hostname == csync2_hosts[0]
+
+- name: generate_keys | Get all ssl files
+  find:
+    paths: "{{ csync2_conf_dir }}"
+    patterns: "csync2*"
+    file_type: file
+  register: cfiles
+  when:
+    - inventory_hostname == csync2_hosts[0]
+
+- name: generate_keys | Fetch all conf file
+  fetch:
+    src: "{{ item.path }}"
+    dest: /tmp/
+    flat: yes
+  with_items: "{{ cfiles.files|default([]) }}"
+  when:
+    - inventory_hostname == csync2_hosts[0]
+
+- name: generate_keys | Copy csync2 files on all nodes but not first
+  copy:
+    src: "{{ item }}"
+    dest: "{{ csync2_conf_dir }}"
+  with_fileglob:
+    - /tmp/csync2*
+  notify:
+    - restart csync2
+  when:
+    - inventory_hostname != csync2_hosts[0]

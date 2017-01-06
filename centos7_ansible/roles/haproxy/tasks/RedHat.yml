@@ -1,0 +1,13 @@
+- name: RedHat | Install SELinux python library
+  yum: name=policycoreutils-python state=installed
+
+- name: RedHat | Enable SELinux boolean haproxy_connect_any
+  seboolean: name=haproxy_connect_any state=yes persistent=yes
+
+- name: RedHat | Set firewall rule for defined port
+  firewalld:
+    port:      "{{ item.port }}/tcp"
+    permanent: true
+    state:     enabled
+    immediate: yes
+  with_items: "{{ haproxy_pool_servers }}"

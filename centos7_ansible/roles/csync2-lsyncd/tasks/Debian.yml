@@ -1,0 +1,7 @@
+---
+- name: Debian | Install dependencies
+  package:
+    name: "{{ item }}"
+  with_items:
+    - xinetd
+    - openssl

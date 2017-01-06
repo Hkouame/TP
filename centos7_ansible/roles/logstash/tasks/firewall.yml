@@ -1,0 +1,10 @@
+---
+- name: RedHat | Setting firewall rules
+  firewalld:
+    port:      "{{item}}/tcp"
+    permanent: true
+    state:     enabled
+    immediate: yes
+  with_items: '{{ ls_binding_ports }}'
+  when: firewall_type == "firewalld"
+

@@ -1,0 +1,12 @@
+---
+
+- name: Users | "Ensure the system can resolve itself"
+  lineinfile:
+    dest=/etc/hosts
+    regexp=".* {{ ansible_hostname }}$"
+    insertafter=yes
+    line="{{ (main_interface | default(ansible_lo.ipv4)).address }} {{ ansible_fqdn }} {{ ansible_hostname }}"
+    state=present
+  tags:
+    - install
+    - update_config

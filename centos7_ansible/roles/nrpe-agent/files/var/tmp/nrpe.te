@@ -1,0 +1,39 @@
+module nrpe 1.1;
+
+require {
+    type ndc_exec_t;
+    type tmp_t;
+    type nagios_etc_t;
+    type nrpe_t;
+    type sudo_exec_t;
+    type named_zone_t;
+	type named_cache_t;
+    class capability audit_write;
+    class dir { write read add_name search };
+    class file { execute read create execute_no_trans write getattr open ioctl };
+    class netlink_audit_socket { nlmsg_relay create };
+}
+
+
+#============= nrpe_t ==============
+allow nrpe_t nagios_etc_t:dir read;
+allow nrpe_t nagios_etc_t:file getattr;
+allow nrpe_t nagios_etc_t:file read;
+allow nrpe_t nagios_etc_t:file open;
+allow nrpe_t ndc_exec_t:file getattr;
+allow nrpe_t named_cache_t:dir search;
+allow nrpe_t named_cache_t:file { read ioctl open };
+
+#!!!! This avc is allowed in the current policy
+allow nrpe_t self:capability audit_write;
+
+#!!!! This avc is allowed in the current policy
+allow nrpe_t self:netlink_audit_socket { nlmsg_relay create };
+
+#!!!! This avc is allowed in the current policy
+allow nrpe_t sudo_exec_t:file { read getattr open execute execute_no_trans };
+allow nrpe_t tmp_t:dir { write add_name };
+allow nrpe_t tmp_t:file { write create open };
+
+#!!!! This avc is allowed in the current policy
+allow nrpe_t named_zone_t:dir search;

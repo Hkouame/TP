@@ -1,0 +1,4 @@
+php_default_packages:
+  - php
+  - php-cli
+  - php-pecl-zendopcache

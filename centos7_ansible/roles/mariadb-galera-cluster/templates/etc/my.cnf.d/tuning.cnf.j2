@@ -1,0 +1,28 @@
+[mysqld]
+
+max_binlog_size         = 100M
+expire_logs_days        = 10
+
+# TO BE TUNED SPECIFICALLY PER DATA REPARTITION
+key_buffer_size         = 64M
+bulk_insert_buffer_size = 64M
+
+# MyISAM Tuning
+myisam_sort_buffer_size = 602M
+myisam_max_sort_file_size = 4G
+myisam_repair_threads = 1
+myisam_recover
+
+# InnoDB Tuning
+innodb_file_per_table
+innodb_buffer_pool_size = {{ mariadb_innodb_buffer_pool_size }}
+innodb_data_file_path = ibdata1:10M:autoextend
+innodb_write_io_threads = 8
+innodb_read_io_threads = 8
+innodb_thread_concurrency = 16
+innodb_flush_log_at_trx_commit = 1
+innodb_log_buffer_size = 8M
+innodb_log_file_size = 256M
+# innodb_log_files_in_group = 3
+innodb_max_dirty_pages_pct = 90
+innodb_lock_wait_timeout = 120

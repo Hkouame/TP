@@ -1,0 +1,14 @@
+# Status listener for proxy to check radius availability
+server status {
+    listen {
+        type = status
+        ipaddr = *
+        port = 18121
+    }
+    authorize {
+        ok
+        Autz-Type Status-Server {
+            ok
+        }
+    }
+}

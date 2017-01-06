@@ -1,0 +1,9 @@
+- name: regenerate locales
+  shell: locale-gen && update-locale "LANG=en_US.UTF-8"
+
+- name: update debian certificates
+  command: update-ca-certificates
+
+- name: update rhel certificates
+  command: update-ca-trust
+

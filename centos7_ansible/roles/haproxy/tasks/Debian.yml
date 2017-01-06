@@ -1,0 +1,6 @@
+- name: Debian | Ensure HAProxy is enabled
+  lineinfile:
+    dest: /etc/default/haproxy
+    regexp: "^ENABLED.+$"
+    line: "ENABLED=1"
+    state: present

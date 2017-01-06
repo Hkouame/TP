@@ -1,0 +1,21 @@
+---
+- set_fact:
+    iface_name: "{{ libvirt_network.client }}{{ libvirt_network.vlanid }}"
+
+- name: libvirt-vnet | Generate subnet config for {{ libvirt_network.client }}
+  template:
+    src:  "var/tmp/libvirt/clientvnet.xml.j2"
+    dest: "{{ libvirt_tmp_dir }}/vnet-{{ iface_name }}.xml"
+
+- name: libvirt-vnet | Check if subnet {{ iface_name }} exist
+  shell: "virsh iface-list --all | grep -q '^ {{ iface_name }} ' || echo notfound && echo found"
+  changed_when: false
+  register: iface_cmd
+
+- name: libvirt-vnet | Define subnet {{ iface_name }}
+  command: "virsh iface-define {{ libvirt_tmp_dir }}/vnet-{{ iface_name }}.xml"
+  when: "'notfound' in iface_cmd.stdout"
+
+- name: libvirt-vnet | Start subnet {{ iface_name }}
+  command: "virsh iface-start {{ iface_name }}"
+  when: "'notfound' in iface_cmd.stdout"

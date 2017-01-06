@@ -1,0 +1,26 @@
+# Address redis will listen (0.0.0.0 for all interfaces)
+bind {{redis_setting_bind_address}}
+
+# Accept connections on the specified port, default is 6379.
+port {{redis_setting_port}}
+
+# Number of databases available
+databases {{redis_setting_databases}}
+
+# Durability tunning
+{% for save_config in redis_setting_save %}
+save {{save_config}}
+{% endfor %}
+
+{% if redis_setting_appendonly == 'yes' %}
+appendonly yes
+appendfsync {{redis_setting_appendfsync}}
+no-appendfsync-on-rewrite {{redis_setting_no_append_fsync_on_rewrite}}
+auto-aof-rewrite-percentage {{redis_setting_auto_aof_rewrite_percentage}}
+auto-aof-rewrite-min-size {{redis_setting_auto_aof_rewrite_min_size}}  
+{% endif %}
+
+# Memory settings
+maxmemory {{redis_setting_maxmemory}}
+maxmemory-policy {{redis_setting_maxmemory_policy}}
+maxmemory-samples {{redis_setting_maxmemory_samples}}

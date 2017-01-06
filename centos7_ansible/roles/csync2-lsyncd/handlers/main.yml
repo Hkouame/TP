@@ -1,0 +1,15 @@
+---
+- name: reload sysctl
+  shell: sysctl -p
+  ignore_errors: true
+  notify: restart lsyncd
+
+- name: restart lsyncd
+  service:
+    name: "{{ lsyncd_service }}"
+    state: restarted
+
+- name: restart csync2
+  service:
+    name: "{{ csync2_service }}"
+    state: restarted

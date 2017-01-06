@@ -1,0 +1,5 @@
+- hosts: all
+  roles:
+        - role: ansible-mongodb
+  post_tasks:
+        - wait_for: host=localhost port=28017

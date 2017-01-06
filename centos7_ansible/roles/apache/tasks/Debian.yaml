@@ -1,0 +1,61 @@
+---
+
+
+- name: Debian | Configure Apache2 ports
+  template:
+    src: "{{ apache2_ports_template }}"
+    dest: /etc/apache2/ports.conf
+  notify: "Restart Apache"
+  tags:
+    - install
+    - update_config
+
+- name: Debian | Install Apache2 base packages
+  packages:
+      name: "{{ item }}"
+      package: "present"
+  with_items: '{{ apache2_packages|default(apache2_default_packages) + apache2_extra_packages|default([]) }}'
+  tags:
+    - install
+    - update_config
+  notify:
+    - "Restart Apache"
+
+- name: Debian | Install packages required by modules
+  package:
+    name: "{{ item.1 }}"
+    state: "present"
+  with_subelements:
+    - '{{ apache2_modules_packages }}'
+    - packages
+  when: apache2_modules_packages is defined and item.0.module in apache2_all_modules
+  tags:
+    - install
+    - update_config
+  notify:
+    - "Restart Apache"
+
+- name: Debian | Activate Apache2 modules
+  apache2_module: name={{item}} state=present
+  with_items: '{{ apache2_all_modules }}'
+  notify: "Restart Apache"
+  tags:
+    - install
+    - update_config
+    - update_app
+
+- name: Debian | Disable default Apache2 site
+  file: path=/etc/apache2/sites-enabled/{{item}} state=absent
+  with_items: '{{ apache2_disabled_default }}'
+  notify: "Reload Apache"
+  tags:
+    - install
+    - update_config
+
+- name: Debian | Activate Apache2 security (jessie)
+  file: src="../conf-available/security.conf" path=/etc/apache2/conf-enabled/security.conf state=link
+  notify: "Reload Apache"
+  when: ansible_distribution_release == "jessie"
+  tags:
+    - install
+    - update_config

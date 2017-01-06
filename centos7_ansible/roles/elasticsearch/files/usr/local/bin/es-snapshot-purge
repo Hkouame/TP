@@ -1,0 +1,36 @@
+#!/bin/bash
+
+ES_REPO=backup
+
+syntax() {
+    echo "Usage: ${0##*/} -d -o days [-r repository]"
+    echo
+    echo "Options:"
+    echo "  -d             Do not perform any changes"
+    echo "  -o days        Purge snapshot older than n days"
+    echo "  -r repository  Name of repository (default: $ES_REPO)"
+
+	exit 1
+}
+
+while getopts "o:r:d" opt
+do
+	case $opt in
+		o) DAYS=$OPTARG
+		;;
+		r) ES_REPO=$OPTARG
+		;;
+		d) OPTS='--dry-run'
+		;;
+		*) syntax
+		;;
+	esac
+done
+
+if [ -z "$DAYS" ]; then
+	syntax
+fi
+
+curator $OPTS --master-only delete snapshots --repository ${ES_REPO} --older-than ${DAYS} --time-unit days
+
+exit $?

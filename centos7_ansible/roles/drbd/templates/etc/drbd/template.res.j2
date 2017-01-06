@@ -1,0 +1,56 @@
+# DRBD {{ drbd_res_name }} resource configuration file
+resource {{ drbd_res_name }} {
+  protocol {{ drbd_res_sync_proto }};
+
+  disk {{ drbd_disk }};
+  device {{ drbd_device }};
+  meta-disk internal;
+
+  handlers {
+    pri-on-incon-degr "echo o > /proc/sysrq-trigger ; reboot";
+    pri-lost-after-sb "echo o > /proc/sysrq-trigger ; reboot";
+    local-io-error "echo o > /proc/sysrq-trigger ; reboot";
+  }
+
+  startup {
+    wfc-timeout 120;
+  }
+
+  disk {
+    on-io-error detach;
+    # Use only if storage use battery backed
+    #disk-barrier no;
+    #disk-flushes no;
+    al-extents 3389;
+    #c-plan-ahead 6;
+    #c-max-rate 20M;
+    #c-fill-target 2M;
+  }
+
+  net {
+    csums-alg crc32c;
+    # (default: 128k, recommanded: 512k, auto-tuning: 0)
+    sndbuf-size 0;
+    rcvbuf-size 0;
+    max-buffers 8000;
+    max-epoch-size 8000;
+    unplug-watermark 16;
+    after-sb-0pri discard-least-changes;
+    after-sb-1pri call-pri-lost-after-sb;
+    after-sb-2pri call-pri-lost-after-sb;
+    rr-conflict disconnect;
+  }
+
+  syncer {
+    al-extents 257;
+    verify-alg crc32c;
+    rate {{ drbd_res_sync_rate }}; # Depend if drbd use a dedicated link for replication
+  }
+
+{% for host in drbd_hosts %}
+  on {{ host }} {
+    address {{ hostvars[host]['ansible_'+drbd_netif]['ipv4']['address'] }}:{{ drbd_port }};
+  }
+{% endfor%}
+}
+

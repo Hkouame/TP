@@ -1,0 +1,4 @@
+---
+# vars file for nrpe
+centreon_script_dir: '/usr/local/sbin'
+centreon_tmp_dir: '/var/tmp/centreon'

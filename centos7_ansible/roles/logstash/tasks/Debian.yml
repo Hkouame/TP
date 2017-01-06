@@ -1,0 +1,6 @@
+---
+- name: "Debian | Add repository"
+  apt_repository:
+     filename: "logstash"
+     repo: "deb http://packages.elastic.co/logstash/2.3/debian stable main"
+     update_cache: yes

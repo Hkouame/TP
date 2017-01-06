@@ -1,0 +1,8 @@
+---
+# vars file for keepalived
+keepalived_package_name: keepalived
+keepalived_service_name: keepalived
+
+keepalived_confdir: /etc/keepalived
+keepalived_tempdir: /var/tmp
+keepalived_bindir:  /usr/local/bin

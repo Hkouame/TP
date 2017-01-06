@@ -1,0 +1,20 @@
+---
+# vars file for ansible-owcloud
+
+owcloud_dependences: 
+  - httpd 
+  - php 
+  - php-mysql 
+  - sqlite 
+  - php-dom 
+  - php-mbstring 
+  - php-gd 
+  - php-pdo 
+  - php-process 
+  - wget 
+  - bzip2 
+  - mod_ssl 
+  - openssl
+  - python
+  - tar
+

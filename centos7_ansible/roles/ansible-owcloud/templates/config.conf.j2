@@ -1,0 +1,10 @@
+<IfModule mod_alias.c>
+   Alias /owncloud /var/www/html/owncloud 
+</IfModule>
+<Directory "/var/www/html/owncloud">
+   Options Indexes FollowSymLinks
+   AllowOverride All
+   Order allow,deny
+   allow from all
+   Require all granted
+</Directory>

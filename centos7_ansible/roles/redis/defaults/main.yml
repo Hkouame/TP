@@ -1,0 +1,40 @@
+---
+  
+# Package management
+redis_packages:
+  - "{{ redis_package_name }}"
+
+# Redis max open files settings
+redis_setting_ulimit: 65536
+
+# Network settings
+redis_setting_bind_address: 0.0.0.0
+redis_setting_port: 6379
+
+# Numner of available databases
+redis_setting_databases: 16
+
+# Data durability tunning
+redis_setting_save:
+  - 86400 1
+ 
+# If you want to use AOF save mode toggle the following lines to yes
+redis_setting_appendonly: 'yes'
+redis_setting_appendfsync: everysec # Other possible values are always or no
+redis_setting_no_append_fsync_on_rewrite: 'yes'
+redis_setting_auto_aof_rewrite_percentage: 100
+redis_setting_auto_aof_rewrite_min_size: 64mb
+
+# Max available memory (default to 256MB)
+redis_setting_maxmemory: 268435456 
+# Max memory flush policy (applied when maxmemory has been reached).
+#
+# Possible values :
+# volatile-lru -> remove the key with an expire set using an LRU algorithm
+# allkeys-lru -> remove any key accordingly to the LRU algorithm
+# volatile-random -> remove a random key with an expire set
+# allkeys->random -> remove a random key, any key
+# volatile-ttl -> remove the key with the nearest expire time (minor TTL)
+# noeviction -> don't expire at all, just return an error on write operations
+redis_setting_maxmemory_policy: volatile-ttl
+redis_setting_maxmemory_samples: 20

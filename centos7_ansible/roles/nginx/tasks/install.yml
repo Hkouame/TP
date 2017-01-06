@@ -1,0 +1,57 @@
+# Role: ansible-apache
+# Author: Aurélien FOUCRET
+# Description: Install Nginx and configured modules
+
+---
+
+- name: "Install Nginx and modules"
+  apt: name={{item}} state="present"
+  with_items: '{{nginx_packages + nginx_extra_packages|default([])}}'
+  when: ansible_os_family == 'Debian'
+  tags:
+    - install
+    - update_config
+    - update_config
+
+- name: "Install Nginx and modules"
+  yum: name={{item}} state="present"
+  with_items: '{{nginx_packages + nginx_extra_packages|default([])}}'
+  when: ansible_os_family == 'RedHat'
+  tags:
+    - install
+    - update_config
+    - update_config
+
+- name: "Disable default Nginx site"
+  file: path="{{ nginx_sites_default_template }}" state=absent
+  with_items: '{{nginx_disabled_default}}'
+  notify: "Restart Nginx"
+  tags:
+    - install
+    - update_config
+
+- name: "Create *.d folders if they don't exists"
+  file: path="/etc/nginx/{{ item }}" state=directory
+  with_items:
+    - conf.d
+    - sites-enabled
+    - sites-available
+  tags:
+    - install
+    - update_config
+
+- name: "Make sure config file includes sites-enabled"
+  lineinfile: dest=/etc/nginx/nginx.conf
+    line='\tinclude /etc/nginx/sites-enabled/*;'
+    insertafter='^\s*include /etc/nginx/conf.d/\*.conf;'
+  notify: "Restart Nginx"
+
+- name: "Add Nginx to default group"
+  user: name="{{ nginx_daemon_user }}" groups={{nginx_user_group}}
+  when: nginx_user_group is defined
+  tags:
+    - install
+    - update_config
+
+- name: Start Nginx service
+  service: name=nginx state=started enabled=yes

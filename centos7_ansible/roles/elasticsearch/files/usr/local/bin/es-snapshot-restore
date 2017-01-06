@@ -1,0 +1,49 @@
+#!/bin/bash
+
+ES_REPO=backup
+ES_SRV="127.0.0.1"
+IDX_LIST="all"
+RC=0
+
+syntax() {
+    echo "Usage: ${0##*/} -n snapshot_name -i [indice1,indice2,...,indiceN|all] [-r repository]"
+    echo
+    echo "Options:"
+    echo "  -n snapshot_name  Snapshot name to restore"
+    echo "  -i indice         Indice list to restore. Use 'all' for restore all indices of snapshot"
+    echo "  -r repository     Name of repository (default: $ES_REPO)"
+
+    exit 1
+}
+
+while getopts "n:i:r:" opt
+do
+    case $opt in
+        n) ES_SNAP=$OPTARG
+        ;;
+        i) IDX_LIST=$OPTARG
+        ;;
+        r) ES_REPO=$OPTARG
+        ;;
+        *) syntax
+        ;;
+    esac
+done
+
+if [ -z "$ES_SNAP" ]; then
+	syntax
+fi
+
+
+CURL_OPT="http://${ES_SRV}:9200/_snapshot/${ES_REPO}/${ES_SNAP}/_restore?wait_for_completion=true&pretty"
+
+echo "===> ["$(date +"%Y-%m-%d %H:%M:%S")"] Start restoring indices ${IDX_LIST} of snapshot ${ES_SNAP}"
+if [ "$IDX_LIST" == "all" ]; then
+    curl -XPOST $CURL_OPT | jq
+else
+    curl -XPOST $CURL_OPT -d '{ "indices": "'"${IDX_LIST}"'" }' | jq
+fi
+
+echo "===> ["$(date +"%Y-%m-%d %H:%M:%S")"] Restoration of indices [${IDX_LIST}] of snapshot [${ES_SNAP}] in repository [${ES_REPO}]"
+
+exit $RC

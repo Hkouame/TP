@@ -1,0 +1,50 @@
+- name: Install prerequisites (Debian)
+  apt:
+    name="{{ item }}"
+    state=installed
+  with_items: "{{ tomcat_java_default_package_list + tomcat_default_package_list }}"
+  when: ansible_os_family == "Debian"
+
+- name: Install prerequisites (RedHat)
+  yum:
+    name="{{ item }}"
+    state=installed
+  with_items: "{{ tomcat_java_default_package_list + tomcat_default_package_list }}"
+  when: ansible_os_family == "RedHat"
+
+- name: Install MySQL JDBC connector (Debian)
+  apt:
+    name="{{ tomcat_mysql_connector_package }}"
+    state=installed
+  when: tomcat_use_mysql and ansible_os_family == "Debian"
+
+- name: Install MySQL JDBC connector (RedHat)
+  yum:
+    name="{{ tomcat_mysql_connector_package }}"
+    state=installed
+  when: tomcat_use_mysql and ansible_os_family == "RedHat"
+
+- name: set MySQL connector symlink
+  file:
+    dest="{{ tomcat_lib_path }}/mysql-connector-java.jar"
+    src=/usr/share/java/mysql-connector-java.jar
+    state=link
+  when: tomcat_use_mysql and ansible_os_family == "Debian"
+  notify:
+    - restart tomcat
+
+- name: Write environment files
+  template:
+    src=env.j2
+    dest="{{ tomcat_default_file_path }}"
+  when: tomcat_env_vars is defined
+  notify:
+    - restart tomcat
+
+- name: Copy tomcat configuration
+  copy:
+    src="{{ item }}.j2"
+    dest="{{ tomcat_conf_path }}/{{ item|basename }}"
+  with_items: "{{ tomcat_conf_files|default([]) }}"
+  notify:
+    - restart tomcat

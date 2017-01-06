@@ -1,0 +1,48 @@
+- name: "Create zookeeper group"
+  group:
+    name:  zookeeper
+    state: present
+
+- name: "Create zookeeper user"
+  user:
+    name:    zookeeper
+    comment: Zookeeper
+    group:   zookeeper
+    system:  yes
+    append:  yes
+    shell:   /sbin/nologin
+
+- name: "Install zookeeper unit file"
+  template:
+    src:   zookeeper.service.j2
+    dest:  /lib/systemd/system/zookeeper.service
+    owner: root
+    mode:  0644
+  notify:
+    - "Reload systemd"
+
+- name: "Create zookeeper data directory"
+  file:
+    path:    "{{ zk_data_dir }}"
+    state:   directory
+    owner:   zookeeper
+    group:   zookeeper
+    mode:    0755
+
+- name: "Create zookeeper myid file"
+  template:
+    src:   zookeeper.myid.j2
+    dest:  "{{ zk_data_dir }}/myid"
+    owner: root
+    group: root
+    mode:  0644
+
+- name: "Configure zookeeper"
+  template:
+    src:    zookeeper.properties.j2
+    dest:   /etc/kafka/zookeeper.properties
+    owner:  root
+    group:  root
+    mode:   0644
+  notify:
+    "Restart Zookeeper"

@@ -1,0 +1,7 @@
+---
+# handlers file for keepalived
+- name: reload firewalld
+  service: name=firewalld state=reloaded
+
+- name: reload keepalived
+  service: name="{{ keepalived_service_name }}" state=reloaded

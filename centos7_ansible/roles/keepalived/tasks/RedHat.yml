@@ -1,0 +1,32 @@
+---
+- name : redhat | Set INPUT firewalld rules
+  shell: "firewall-cmd --direct --permanent --add-rule ipv4 filter INPUT 0 --in-interface {{ item.value.interface }} --destination 224.0.0.18 --protocol vrrp -j ACCEPT"
+  with_dict: "{{ keepalived_vrrp_instance }}"
+  changed_when: true
+  notify:
+    - reload firewalld
+
+- name : redhat | Set OUTPUT firewalld rules
+  shell: "firewall-cmd --direct --permanent --add-rule ipv4 filter OUTPUT 0 --out-interface {{ item.value.interface }} --destination 224.0.0.18 --protocol vrrp -j ACCEPT"
+  with_dict: "{{ keepalived_vrrp_instance }}"
+  changed_when: true
+  notify:
+    - reload firewalld
+
+- name: redhat | Check SELinux module
+  shell: "semodule -l | grep -q ^keepalived-tmp && echo found || echo notfound"
+  changed_when: false
+  register: keepalived_semod
+
+- name: redhat | Copy SELinux module
+  copy:
+    src:   keepalived-tmp.pp
+    dest:  "{{ keepalived_tempdir }}/keepalived-tmp.pp"
+    owner: root
+    group: root
+    mode:  0644
+  register: keepalived_module
+
+- name: redhat | Apply SELinux module
+  command: "/sbin/semodule -i {{ keepalived_tempdir }}/keepalived-tmp.pp"
+  when: "'notfound' in keepalived_semod.stdout or keepalived_module.changed"

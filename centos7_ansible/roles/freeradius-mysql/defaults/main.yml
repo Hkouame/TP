@@ -1,0 +1,11 @@
+---
+# defaults file for freeradius-mysql
+freerad_db_driver: mysql
+freerad_db_host: localhost
+freerad_db_port: 3306
+freerad_db_user: radius
+freerad_db_pass: changeme
+freerad_db_name: radius
+freerad_db_remote_host: "{{ freerad_db_host }}"
+freerad_db_admin_user: root
+freerad_db_admin_pass: changeme

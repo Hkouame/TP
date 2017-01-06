@@ -1,0 +1,92 @@
+---
+# tasks file for logstash
+# Include per-environment variables
+- include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+        - '{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml'           # CentOS-6.5
+        - '{{ ansible_os_family }}-{{ ansible_distribution_version }}.yml'              # RedHat-6.5
+        - '{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml'     # CentOS-6
+        - '{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml'        # RedHat-6
+        - '{{ ansible_distribution }}.yml'                                              # CentOS
+        - '{{ ansible_os_family }}.yml'                                                 # RedHat
+        - 'main.yml'
+      paths: '../vars'
+
+- include: "{{ ansible_os_family }}.yml"
+
+- name: main | Install package
+  package: name=logstash
+
+- name: main | Deploy configuration file
+  copy:
+    src:   "{{ item.src }}"
+    dest:  "{{ item.dest }}"
+    owner: root
+    group: logstash
+    mode:  0640
+    force: no
+  with_items:
+    - src: logstash.conf
+      dest: "{{ ls_path_conf }}/conf.d/logstash.conf"
+  notify:
+      - "Restart Logstash"
+
+- name: main | Deploy scripts file
+  template:
+    src:   "usr/local/bin/logstash-configtest"
+    dest:  "/usr/local/bin/logstash-configtest"
+    owner: root
+    group: logstash
+    mode:  0750
+
+- name: main | Install plugins
+  shell: "{{ ls_path_bin }}/plugin install {{item}}"
+  with_items: '{{ ls_plugins }}'
+  notify:
+      - "Restart Logstash"
+
+- name: main | Create custom pattern directoy
+  file:
+    path:  "{{ ls_path_conf }}/patterns"
+    owner: root
+    group: root
+    state: directory
+    mode:  0755
+
+- name: main | Deploy daemon configuration file
+  template:
+    src:   "{{ item.src }}"
+    dest:  "{{ item.dest }}"
+    owner: root
+    group: logstash
+    mode:  0640
+  with_items:
+    - src: logstash.daemon.j2
+      dest: '{{ ls_daemon_conf }}'
+  notify:
+      - "Restart Logstash"
+
+- name: main | Create default directory
+  file:
+    path:  "{{ item }}"
+    state: directory
+    owner: logstash
+    group: logstash
+    mode:  0755
+  with_items:
+    - '{{ls_path_data}}'
+    - '{{ls_path_logs}}'
+
+- include: config.yml
+  tags:
+   - config
+
+- include: firewall.yml
+  when: firewall_setup == True
+
+- name: main | Start and enable service
+  service:
+    name:    logstash
+    state:   started
+    enabled: yes

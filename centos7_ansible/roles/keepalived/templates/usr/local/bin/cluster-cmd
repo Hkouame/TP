@@ -1,0 +1,32 @@
+#!/bin/bash
+
+function display_red
+{
+	echo -e "\e[1;31m$@\e[0;0m"
+}
+
+function display_green
+{
+	echo -e "\e[1;32m$@\e[0;0m"
+}
+
+function svc_state
+{
+      if test `pgrep -x $1 | wc -l` -gt 0; then display_green ON; else display_red OFF; fi
+}
+
+echo -e "=> Hostname   : $HOSTNAME ["$(display_green `{{ keepalived_bindir }}/prompt_ha.sh`)"]"
+echo -e "=> Uptime     : "`uptime | sed 's/^ //'`
+echo -e "=> Keepalived : "`svc_state keepalived`
+echo -e "=> IP         : "
+
+for dev in `ip a | grep "state UP" | awk '{print $2}' | sed -e 's/:$//' -e 's/@eth.*//'`
+do
+	# Get main address
+	prim_addr=`ip a l dev $dev | grep 'inet ' | grep brd | awk '{print $2}' | sed -e 's/\/[[:digit:]]*//g'`
+
+	# Get secondary address
+	sec_addr=`ip a l dev $dev | grep 'inet ' | grep -v brd | awk '{print $2}' | sed -e 's/\/[[:digit:]]*//g'`
+
+	[[ -n $prim_addr ]] && echo -e "\t($dev) $prim_addr\t\e[1;32m$sec_addr\e[0;0m"
+done | column -t

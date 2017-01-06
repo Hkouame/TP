@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+if [[ $# -lt 3 ]];then
+    echo "syntax: ${0##*/} <topic-name> <partition-number> <replication-factor>"
+    echo "exemple: ${0##*/} test 5 2"
+elif [[ $# -eq 3 ]];then
+	kafka-topics --create --zookeeper localhost:2181 --topic $1 --partition $2 --replication-factor $3
+fi

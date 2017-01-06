@@ -1,0 +1,87 @@
+
+- name: Users | Refresh APT repositories
+  apt: update_cache=yes cache_valid_time=28800
+
+- name: Users | install locales
+  apt: name=locales
+
+- name: Users | configure locales
+  copy: src=locale.gen dest=/etc/locale.gen
+  notify:
+    - regenerate locales
+
+- name: Users | change root gecos
+  user: name=root comment=root-{{ ansible_hostname }}
+
+- name: Users | configure apt to not install recommands
+  lineinfile: regexp="^aptitude::Recommends-Important"
+    line="aptitude::Recommends-Important \"false\";"
+    dest=/etc/apt/apt.conf create=yes
+
+- name: Users | install basic packages
+  apt: name={{ item }} state=installed
+  with_items:
+    - ca-certificates
+    - bash-completion
+    - diffutils
+    - file
+    - iproute
+    - less
+    - lsof
+    - moreutils
+    - mutt
+    - patch
+    - psmisc
+    - rsync
+    - screen
+    - ssh
+    - ssl-cert
+    - strace
+    - sudo
+    - tcpdump
+    - telnet
+    - unzip
+    - vim
+
+- name: Users | install additional packages
+  apt: name={{ item }} state=installed
+  with_items: '{{ extra_packages }}'
+  when: extra_packages
+
+- name: Users | install packages for hosts
+  apt: name={{ item }} state=installed
+  when: ansible_virtualization_role=="host"
+  with_items:
+    - ntp
+    - acpid
+    - tcpdump
+    - iotop
+    - dstat
+
+- name: Users | remove unwanted packages
+  apt: name={{ item }} state=absent
+  with_items:
+    - locate
+    - mlocate
+    - nano
+    - openbsd-inetd
+
+- name: Users | set rcS options
+  lineinfile: dest=/etc/default/rcS line={{ item.line }} regexp={{ item.regexp }}
+  with_items:
+    - line: "TMPTIME=10"
+      regexp: "^#?TMPTIME"
+    - line: "FSCKFIX=yes"
+      regexp: "^#?FSCKFIX"
+
+- name: Users | copy configuration files
+  copy: src={{ item.src }} dest={{ item.dest }}
+  with_items:
+    - {src: "smile-profile",      dest: "/etc/profile.d/smile.sh"}
+    - {src: "bashrc-skel-debian", dest: "/etc/skel/.bashrc"}
+    - {src: "vimrc-local",        dest: "/etc/vim/vimrc.local"}
+
+- name: Users | download smile certificate
+  copy: src=smile.crt dest=/usr/local/share/ca-certificates/smile.crt
+  notify:
+    - update debian certificates

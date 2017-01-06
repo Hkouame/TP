@@ -1,0 +1,4 @@
+---
+es_daemon_conf: /etc/sysconfig/elasticsearch
+es_plugin_bin: /usr/share/elasticsearch/bin/plugin
+es_plugin_inst_opt: install

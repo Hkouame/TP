@@ -1,0 +1,42 @@
+---
+# RSA Key
+- name: generate | Generate RSA key
+  command: openssl genrsa -out {{ ssl_certs_privkey_path }} {{ ssl_certs_key_size }}
+  args:
+    creates: "{{ ssl_certs_privkey_path }}"
+
+- name: generate | Set RSA key file permissions
+  file:
+    path:  "{{ ssl_certs_privkey_path }}"
+    owner: "{{ ssl_certs_path_owner }}"
+    group: "{{ ssl_certs_path_group }}"
+    mode:  "{{ ssl_certs_mode }}"
+
+# CSR
+- name: generate | Generate CSR
+  command: "openssl req -new -sha256 -subj \"{{ ssl_certs_fields }}\" -key {{ ssl_certs_privkey_path }} -out {{ ssl_certs_csr_path }}"
+  args:
+    creates: "{{ ssl_certs_csr_path }}"
+
+- name: generate | Set CSR file permissions
+  file:
+    path:  "{{ ssl_certs_csr_path }}"
+    owner: "{{ ssl_certs_path_owner }}"
+    group: "{{ ssl_certs_path_group }}"
+    mode:  "{{ ssl_certs_mode }}"
+
+# Self-signed CERT
+- name: generate | Generate self-signed SSL certificate
+  command: "openssl req -nodes -x509 -days {{ ssl_certs_days }} -in {{ ssl_certs_csr_path }} -key {{ ssl_certs_privkey_path }} -out {{ ssl_certs_cert_path }} -extensions v3_ca"
+  args:
+    creates: "{{ ssl_certs_cert_path }}"
+  when: ssl_certs_generate_self_signed
+
+- name: generate | Set Self-signed SSL certificate file permissions
+  file:
+    path:  "{{ ssl_certs_cert_path }}"
+    owner: "{{ ssl_certs_path_owner }}"
+    group: "{{ ssl_certs_path_group }}"
+    mode:  "{{ ssl_certs_mode }}"
+  when: ssl_certs_generate_self_signed
+

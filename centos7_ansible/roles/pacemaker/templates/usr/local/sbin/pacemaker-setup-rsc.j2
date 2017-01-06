@@ -1,0 +1,386 @@
+#!/bin/bash
+
+# ./pacemaker-setup-drbd -n centos7-ha1,centos7-ha2 -r data:/srv -v enp0s3:192.168.56.45:24 -v enp0s3:192.168.56.48:24 -s mariadb -s httpd -d /var/lib/mysql:/srv/mysql -d /var/www:/srv/www
+
+source `dirname $0`/pacemaker-common
+
+MASTER_NODE='' # 1 if this node is master
+DRBD_RSC=''    # 1 if some DRBD resource is provided
+VIP_RSC=''     # 1 if some VIP resource is provided
+SVC_RSC=''     # 1 if some Service resource is provided
+SVC_PARAM=()
+VIP_PARAM=()
+DIR_PARAM=()
+
+[[ -f /sys/fs/selinux/enforce ]] && SELINUX_ENFORCE=$(getenforce) || SELINUX_ENFORCE="disabled"
+
+# Must be run with root privileges
+[[ "$UID" -ne 0 ]] && {
+    error "Script must be run with root privileges"
+    exit 1
+}
+
+[[ ! $(command -v /usr/sbin/semanage) ]] && {
+    error "SELinux manage utility not install. Please run : yum install policycoreutils-python"
+    exit 1
+}
+
+# Stop an disable service
+disable_service() {
+    local SVC_NAME=$1
+
+    info "   * Disabling service $SVC_NAME"
+    systemctl disable $SVC_NAME > /dev/null 2>&1 && \
+    systemctl stop $SVC_NAME > /dev/null 2>&1
+    display_action_status fatal
+}
+
+# Check directory before migration
+check_dir() {
+    local SRC_DIR=$1
+    local DST_DIR=$2
+
+    info "   * Checking migration directory $SRC_DIR -> $DST_DIR fesability"
+
+    # Check source directory
+    if [ -z "$SRC_DIR" -o ! -d "$SRC_DIR" ]; then
+        error "Source directory '$SRC_DIR' is not defined or does not exists !"
+        exit 1
+    fi
+
+    # Check destination directory
+    if [ -z "$DST_DIR" -o "$(ls -A $DST_DIR > /dev/null 2>&1)" ]; then
+        error "Destination directory '$DST_DIR' is not defined or is not empty !"
+        return 1
+    fi
+
+    # Check if directory is already migrate
+    if [ "$(readlink $SRC_DIR)" == "$DST_DIR" ]; then
+        error "Directory $SRC_DIR seems to be already migrate to $DST_DIR !"
+        return 1
+    fi
+
+    # Check if source directory is used by process
+    if [ `lsof "$SRC_DIR" | wc -l` -gt 0 ]; then
+        error "Directory $SRC_DIR is in used by following process :"
+        lsof $SRC_DIR
+        warning "Please stop service using $SRC_DIR directory !\n"
+        exit 1
+    fi
+}
+
+# Migrate directory and restore permissions
+migrate_dir() {
+    local SRC_DIR=$1
+    local DST_DIR=$2
+
+    #check_dir $SRC_DIR $DST_DIR > /dev/null 2>&1
+    check_dir $SRC_DIR $DST_DIR || return 1
+
+    local SRC_DIR_USR=$(stat -c %U $SRC_DIR)
+    local SRC_DIR_GRP=$(stat -c %G $SRC_DIR)
+    local SRC_DIR_CTX=$(stat -c %C $SRC_DIR | cut -d: -f3)
+
+    echo "* Migrating data from $SRC_DIR to $DST_DIR with $SRC_DIR_USR:$SRC_DIR_GRP (Context: $SRC_DIR_CTX) permissions"
+    mkdir -p $DST_DIR && \
+    chown $SRC_DIR_USR:$SRC_DIR_GRP $DST_DIR && \
+    cp -a $SRC_DIR/* $DST_DIR/ && \
+    if [ "$SELINUX_ENFORCE" != "disabled" ] ; then
+        semanage fcontext -a -t $SRC_DIR_CTX "$DST_DIR(/.*)" && \
+        semanage fcontext -a -t $SRC_DIR_CTX $DST_DIR && \
+        restorecon -R $DST_DIR
+    fi
+    display_action_status fatal > /dev/null 2>&1
+}
+
+# Remove old directory, create symlink and restore SELinux context
+link_dir() {
+    local SRC_DIR=$1
+    local DST_DIR=$2
+
+    info "   * Removing $SRC_DIR and create link to $DST_DIR"
+    rm -rf $SRC_DIR && \
+    ln -s $DST_DIR $SRC_DIR && \
+    if [ "$SELINUX_ENFORCE" != "disabled" ] ; then
+        restorecon -R $SRC_DIR
+    fi
+    display_action_status fatal
+}
+
+mount_dir() {
+    local DEVICE=$1
+    local DIR=$2
+
+    # Check device and directory validity
+    if [ ! -b "$DEVICE" -o ! -d "$DIR" ]; then
+        error "Invalid device '$DEVICE' or directory '$DIR' !"
+        return 1
+    fi
+
+    # Mount device if not already mounted
+    if [ ! "$(grep -q '$DEVICE' /proc/mounts)" ]; then
+        mount $DEVICE $DIR || return 1
+    fi
+}
+
+usage()
+{
+    exec >&2
+
+    echo "usage: $0 [options]"
+    echo '  -m,  --master                       defined master node on cluster'
+    echo '  -n,  --node node1,node2             comma separated cluster node list'
+    echo '  -r,  --drbd drbd_rsc:drdb_mntpoint  DRBD resource name and mount point'
+    echo '  -s*, --service service              service name manage by cluster (declare in same order service must be started)'
+    echo '  -v*, --vip interface:ip:netmask     VIP resource'
+    echo '  -d*, --directory src_dir:dst_dir    directory to migrate to DRBD device from source to destination'
+    echo '  -h,  --help                         display this help message'
+    echo ''
+    echo '*: parameter can be use multiple times for multiple resources declaration'
+    echo ''
+    echo 'Example: pacemaker-setup-drbd -n srv-ha1,srv-ha2 -r data:/srv -v enp0s3:192.168.56.45:24 -v enp0s3:192.168.56.48:24 -s mariadb -s httpd -d /var/lib/mysql:/srv/mysql -d /var/www:/srv/www'
+
+	exit 1
+}
+
+ARGUMENTS="$(getopt \
+    --longoptions 'master,node:,drbd:,directory:,service:,vip:,help' \
+    --options 'mn:r:d:s:v:h' \
+    --shell bash \
+    --name "$0" \
+    -- "$@"
+)" || usage
+
+eval set - "${ARGUMENTS[@]}"
+
+until [ "$#" -eq 0 ]
+do
+    ARGUMENT="$1"
+    shift
+
+    case "$ARGUMENT" in
+        '--node' | '-n')
+            NODE_LIST="$(echo $1 | sed -e 's/,/ /g')"
+            shift ;;
+        '--drbd' | '-r')
+            DRBD_RESOURCE="$(echo $1 | cut -d: -f1)"
+            DRBD_MOUNTPOINT="$(echo $1 | cut -d: -f2)"
+            DRBD_RSC=1
+            shift ;;
+        '--directory' | '-d')
+            DIR_PARAM+=("$1")
+            DRBD_RSC=1
+            shift ;;
+        '--service' | '-s')
+            SVC_PARAM+=("$1")
+            SVC_RSC=1
+            shift ;;
+        '--vip' | '-v')
+            VIP_PARAM+=("$1")
+            VIP_RSC=1
+            shift ;;
+        '--help' | '-h')
+            usage ;;
+        '--master' | '-m')
+            MASTER_NODE=1
+            shift ;;
+    esac
+done
+
+[ "$#" -eq 0 ] || usage
+
+pcs status > /dev/null 2>&1 && {
+    error "PCS seems to be already configure with the following configuration :"
+    pcs status
+    error '/!\ You can reinitialize cluster by running on each cluster node command : pcs cluster destroy /!\ '
+    exit 1
+}
+
+[ -z "$NODE_LIST" ] && {
+    error "Node list missing. Please specify parameter --node or -n with a comma separated cluster node list";
+    usage
+}
+
+[ -n "$DIR_PARAM" ] && [ -z "$DRBD_RESOURCE" -o -z "$DRBD_MOUNTPOINT" ] && {
+    error "Usage of --directory or -n implies usage of --drbd or -r parameter"
+    usage
+}
+
+# Display argument list
+echo "You are about to create configuration for Pacemaker with the following parameters:"
+
+if [ $DRBD_RSC ]; then
+    drbdadm sh-resource $DRBD_RESOURCE > /dev/null || exit 1
+    DRBD_DEVICE=$(drbdadm sh-dev $DRBD_RESOURCE)
+    DRBD_FILESYSTEM=$(lsblk -no FSTYPE $DRBD_DEVICE)
+    echo "    DRBD RESOURCE:   ${DRBD_RESOURCE}"
+    echo "    DRBD DEVICE:     ${DRBD_DEVICE}"
+    echo "    DRBD MOUNTPOINT: ${DRBD_MOUNTPOINT}"
+fi
+
+echo "    CLUSTER NODE:"
+for node in ${NODE_LIST}; do
+    echo "      - ${node}"
+done
+
+if [ $VIP_RSC ]; then
+    echo "    VIP:"
+    for vip in "${VIP_PARAM[@]}"; do
+        VIP_INTERFACE=$(echo $vip | cut -d: -f1)
+        VIP_ADDRESS=$(echo $vip | cut -d: -f2 | sed -e 's/\/$//')
+        VIP_NETMASK=$(echo $vip | cut -d: -f3 | sed -e 's/\/$//')
+        echo "      - $VIP_INTERFACE : $VIP_ADDRESS/$VIP_NETMASK"
+    done
+fi
+
+if [ $SVC_RSC ]; then
+    n=0
+    echo "    SERVICE:"
+    for svc in "${SVC_PARAM[@]}"; do
+        ((n++))
+        echo "      - (${n}) ${svc}"
+    done
+fi
+
+if [ $DRBD_RSC ]; then
+    echo "    DIRECTORY:"
+    for dir in "${DIR_PARAM[@]}"; do
+        SRC_DIR=$(echo $dir | cut -d: -f1 | sed -e 's/\/$//')
+        DST_DIR=$(echo $dir | cut -d: -f2 | sed -e 's/\/$//')
+        echo "      - $SRC_DIR -> $DST_DIR"
+    done
+fi
+
+if [ ! -z "$PS1" ]; then
+  warning 'Are you sure you want to proceed? (y/N) '
+  confirmAction || exit 1
+fi
+
+echo
+
+if [ $DRBD_RSC ]; then
+    # Checking DRBD cluster state
+    info "   * Checking node role"
+    drbdadm role $DRBD_RESOURCE | grep -q Primary > /dev/null 2>&1 || {
+    	error "\t[NOK]\nNode not connected or no Primary node present"
+    	exit 1
+    }
+    drbdadm role $DRBD_RESOURCE | grep -q "^Primary" && DRBD_ROLE="Primary" || DRBD_ROLE="Secondary" 
+    [[ "$DRBD_ROLE" == "Primary" ]] && MASTER_NODE=1
+    display "\t[$DRBD_ROLE]\n"
+fi
+
+if [ $SVC_RSC ]; then
+    # Disable service
+    for svc in "${SVC_PARAM[@]}"; do
+        disable_service $svc
+    done
+fi
+
+if [ $DRBD_RSC ]; then
+    # Create and mount directory for DRBD
+    mkdir -p $DRBD_MOUNTPOINT
+    
+    # Mount, migrate data for each service and umount DRBD directory
+    if [ "$DRBD_ROLE" == "Primary" ]; then
+        info "   * Mount DRBD device to $DRBD_MOUNTPOINT"
+    	mount_dir $DRBD_DEVICE $DRBD_MOUNTPOINT && \
+        display_action_status fatal
+    
+        # Migration each service's directory
+        for dir in "${DIR_PARAM[@]}"; do
+            SRC_DIR=$(echo $dir | cut -d: -f1 | sed -e 's/\/$//')
+            DST_DIR=$(echo $dir | cut -d: -f2 | sed -e 's/\/$//')
+            migrate_dir $SRC_DIR $DST_DIR
+        done
+    
+        info "   * Unmount $DRBD_MOUNTPOINT"
+    	umount $DRBD_MOUNTPOINT && \
+        display_action_status fatal
+    fi
+    
+    # Remove source directory and create link to destination directory
+    for dir in "${DIR_PARAM[@]}"; do
+        SRC_DIR=$(echo $dir | cut -d: -f1 | sed -e 's/\/$//')
+        DST_DIR=$(echo $dir | cut -d: -f2 | sed -e 's/\/$//')
+        link_dir $SRC_DIR $DST_DIR
+    done
+    
+    # Enable SELinux daemon boolean
+    if [ "$SELINUX_ENFORCE" != "disabled" ] ; then
+    	setsebool -P daemons_enable_cluster_mode 1
+    fi
+    
+    
+    # Remove DRBD mount point entry in /etc/fstab
+    info "   * Removing /srv mount entry from /etc/fstab"
+    sed -i "s|\(^[^#].*[[:blank:]]${DRBD_MOUNTPOINT}.*\)|#\1|" /etc/fstab
+    display_action_status fatal
+fi
+
+if [ ! "$MASTER_NODE" ]; then
+    display "Configuration terminated on slave node ! Use 'cluster-watch' command to check cluster availablity.\n.\n"
+    exit 0
+fi
+
+# Initialize cluster
+pcmk_init_cluster "${NODE_LIST}"
+
+# Configuring cluster
+info "   * Configuring cluster"
+SVC_LIST_RSC=''
+VIP_LIST_RSC=''
+DRBD_LIST_RSC=''
+CIB_CFG=/tmp/cib_cfg
+
+pcs cluster cib $CIB_CFG
+
+# Create VIP resource
+if [ $VIP_RSC ]; then
+    n=0
+    for vip in "${VIP_PARAM[@]}"; do
+        ((n++))
+        VIP_INTERFACE=$(echo $vip | cut -d: -f1)
+        VIP_ADDRESS=$(echo $vip | cut -d: -f2 | sed -e 's/\/$//')
+        VIP_NETMASK=$(echo $vip | cut -d: -f3 | sed -e 's/\/$//')
+        pcs -f $CIB_CFG resource create NET-VIP${n}-${VIP_INTERFACE} ocf:heartbeat:IPaddr2 \
+            params ip="$VIP_ADDRESS" cidr_netmask="$VIP_NETMASK" nic="$VIP_INTERFACE"
+        VIP_LIST_RSC="${VIP_LIST_RSC} NET-VIP${n}-${VIP_INTERFACE}"
+    done
+fi
+
+# Create Service resource
+if [ $SVC_RSC ]; then
+    for svc in "${SVC_PARAM[@]}"; do
+        pcs -f $CIB_CFG resource create SVC-${svc} systemd:${svc} \
+            op monitor interval="10s" meta migration-threshold=3
+        SVC_LIST_RSC="${SVC_LIST_RSC} SVC-${svc}"
+    done
+fi
+
+# Create DRBD resource
+if [ $DRBD_RSC ]; then
+    pcs -f $CIB_CFG resource create DRBD-Resource-$DRBD_RESOURCE ocf:linbit:drbd \
+	    drbd_resource=$DRBD_RESOURCE op monitor interval=60s
+    pcs -f $CIB_CFG resource master DRBD-MasterSlave-$DRBD_RESOURCE DRBD-Resource-$DRBD_RESOURCE \
+        master-max=1 master-node-max=1 clone-max=2 clone-node-max=1 notify=true
+    pcs -f $CIB_CFG resource create FS-$DRBD_RESOURCE ocf:heartbeat:Filesystem \
+        device="$DRBD_DEVICE" directory="$DRBD_MOUNTPOINT" fstype="$DRBD_FILESYSTEM"
+    DRBD_LIST_RSC="${DRBD_LIST_RSC} FS-$DRBD_RESOURCE"
+
+    # Constraint
+    pcs -f $CIB_CFG constraint colocation add $DRBD_LIST_RSC with DRBD-MasterSlave-$DRBD_RESOURCE INFINITY with-rsc-role=Master
+    pcs -f $CIB_CFG constraint order promote DRBD-MasterSlave-$DRBD_RESOURCE then start FS-$DRBD_RESOURCE > /dev/null
+fi
+
+# Group resource
+pcs -f $CIB_CFG resource group add RSC-Full $DRBD_LIST_RSC $VIP_LIST_RSC $SVC_LIST_RSC
+display_action_status fatal
+
+# Applying configurating
+info "   * Applying Configuration"
+pcs cluster cib-push $CIB_CFG > /dev/null 2>&1
+rm $CIB_CFG
+display_action_status fatal
+
+display "Cluster configuration on $HOSTNAME finished ! Use 'cluster-watch' command to check cluster availablity.\n"

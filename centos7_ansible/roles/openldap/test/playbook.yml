@@ -1,0 +1,11 @@
+- hosts: all 
+  vars:
+      openldap_rootdn: cn=admin,dc=example,dc=com
+      openldap_rootpw: admin
+      openldap_ldif: example.ldif
+      openldap_overlays:
+          - ppolicy
+      openldap_config:
+          ppolicy_default: cn=default,ou=policies,dc=example,dc=com
+  roles:
+        - role: ansible-openldap

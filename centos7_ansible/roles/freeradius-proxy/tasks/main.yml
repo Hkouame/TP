@@ -1,0 +1,48 @@
+---
+# include per-environment variables
+- include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+        - '{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml'           # CentOS-6.5
+        - '{{ ansible_os_family }}-{{ ansible_distribution_version }}.yml'              # RedHat-6.5
+        - '{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml'     # CentOS-6
+        - '{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml'        # RedHat-6
+        - '{{ ansible_distribution }}.yml'                                              # CentOS
+        - '{{ ansible_os_family }}.yml'                                                 # RedHat
+        - 'main.yml'
+      paths: '../vars'
+
+- name: main | Configure freeradius proxy.conf
+  template:
+    src:   etc/freeradius/proxy.conf.j2
+    dest:  "{{ freerad_confdir }}/proxy.conf"
+    owner: root
+    group: "{{ freerad_group }}"
+  notify:  restart freeradius
+
+- name: main | Create freeradius proxy virtual server
+  template:
+    src:   etc/freeradius/sites-available/proxy.j2
+    dest:  "{{ freerad_confdir }}/sites-available/proxy"
+    owner: root
+    group: "{{ freerad_group }}"
+  notify:  restart freeradius
+
+- name: main | Enable symlink in sites-enabled
+  file:
+    src:   "{{ freerad_confdir }}/sites-available/proxy"
+    dest:  "{{ freerad_confdir }}/sites-enabled/proxy"
+    state: link
+    owner: root
+    group: "{{ freerad_group }}"
+  notify:  restart freeradius
+
+- name: main | Declare proxy server as NAS on remote freeradius server
+  template:
+    src:   etc/freeradius/clients.d/proxy.j2
+    dest:  "{{ freerad_confdir }}/clients.d/proxy"
+    owner: root
+    group: "{{ freerad_group }}"
+  notify:  restart freeradius remote
+  delegate_to: "{{ item }}"
+  with_items: "{{ freerad_prx_home_server }}"

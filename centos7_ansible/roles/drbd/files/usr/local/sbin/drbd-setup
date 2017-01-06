@@ -1,0 +1,131 @@
+#!/bin/bash
+
+DRBD_RES="$1"
+DRBD_MASTER="$2"
+
+error() {
+    echo -e "\e[1;31m$@\e[0;39m"
+}
+
+warning() {
+    echo -ne "\e[1;33m$@\e[0;39m"
+}
+
+info() {
+    echo -ne "$@"
+}
+
+display() {
+    echo -ne "\e[1;32m$@\e[0;39m"
+}
+
+display_action_status() {
+    if [ "$?" -gt "0" ]; then
+        warning "\t[NOK]\n"
+        if [ "$msg" != "" ]; then
+            warning "$msg\n"
+        fi
+        if [ "$1" == "fatal" ]; then 
+            exit 1
+        fi
+        return 1
+    else
+        display "\t[OK]\n"
+        return 0
+    fi
+}
+
+confirmAction() {
+    read ans
+    case "$ans" in
+        "Y" | "y" | "yes" | "Yes")
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+
+if [ "$DRBD_RES" == "" ]; then
+    error "Syntax: $0 <drbd resource name>\n"
+    exit 1
+fi
+
+info "* Check resource"
+drbdadm sh-resource $DRBD_RES > /dev/null
+display_action_status fatal
+
+DRBD_DEV=$(drbdadm sh-dev $DRBD_RES)
+DRBD_VOL=$(drbdadm sh-ll-dev $DRBD_RES)
+
+display "Configuring DRBD resource $DRBD_RES on $HOSTNAME\n"
+
+info "* Stopping service"
+service drbd stop > /dev/null 2>&1
+display_action_status
+
+info "* Loading kernel module"
+modprobe drbd
+display_action_status fatal
+
+if [ ! -e  "$DRBD_DEV" ]; then
+    info "* Creating device"
+    drbdadm adjust-with-progress $DRBD_RES > /dev/null 2>&1
+    [ -e  "$DRBD_DEV" ]; display_action_status fatal
+fi
+
+info "* Running md check"
+drbdmeta 0 v08 $DRBD_VOL internal dstate > /dev/null 2>&1
+if [ "$?" != "255" ]; then
+    false ; display_action_status
+    error "     DRBD Meta data might be present. Please wipe it before running this script."
+    error "     You can wipe it by running:"
+    error "     drbdadm down $DRBD_RES && drbdadm wipe-md $DRBD_RES"
+    info "* Relaunching service.."
+    service drbd start > /dev/null 2>&1
+    display_action_status
+    exit 1
+else
+    true; display_action_status
+fi
+
+info "* Unconfiguring device"
+drbdadm down $DRBD_RES
+display_action_status fatal
+
+info "* Creating Metadata"
+drbdadm create-md $DRBD_RES > /dev/null 2>&1
+display_action_status fatal
+
+info "* Setting device up"
+drbdadm up $DRBD_RES
+display_action_status fatal
+
+info "* Setting device network config\n"
+warning "* This will wait the other node before going further, you must run this script on the other node\n"
+drbdadm wait-connect $DRBD_RES > /dev/null 2>&1
+
+info "* The two nodes are now connected\n"
+if [ "${DRBD_MASTER}" == "" ]; then
+  warning "* Does this node is the master (y|yes|n|no) ?\n"
+  confirmAction
+else
+  [[ "${DRBD_MASTER}" == "${HOSTNAME}" ]] && true || false
+fi
+
+if [ $? -eq 1 ]; then
+    display "DRBD Configuration on $HOSTNAME finished !\n"
+    exit 0
+fi
+
+info "* Switching to primary"
+drbdadm -- --overwrite-data-of-peer primary $DRBD_RES
+display_action_status
+
+info "* Formating $DRBD_DEV"
+mkfs.ext4 $DRBD_DEV > /dev/null 2>&1
+display_action_status 
+
+display "DRBD Configuration on $HOSTNAME finished !\n"

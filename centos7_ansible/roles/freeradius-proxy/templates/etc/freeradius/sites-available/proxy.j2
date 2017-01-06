@@ -1,0 +1,14 @@
+# Proxy server configuration file example
+server proxy {
+	authorize {
+		update control {
+ 	                Proxy-To-Realm := "fake_realm"
+		}
+	}
+
+	accounting {
+		update control {
+ 	                Proxy-To-Realm := "fake_realm"
+		}
+	}
+}

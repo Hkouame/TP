@@ -1,0 +1,4 @@
+freerad_service_name: radiusd
+freerad_confdir: /etc/raddb
+freerad_user: radiusd
+freerad_group: radiusd

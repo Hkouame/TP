@@ -1,0 +1,16 @@
+---
+
+- name: configure_logrotate | create log directory
+  file:
+    path:    /var/log/mysql
+    state:   directory
+    mode:    0750
+    owner:   mysql
+    group:   mysql
+
+- name: configure_logrotate | create logrotate file
+  template:
+    src:   etc/logrotate.d/mysql.j2
+    dest:  /etc/logrotate.d/mysql
+    owner: root
+    group: root

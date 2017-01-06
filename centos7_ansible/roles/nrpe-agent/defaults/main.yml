@@ -1,0 +1,7 @@
+---
+# Variables for NRPE configuration
+nrpe_bind_address: 0.0.0.0
+nrpe_allowed_hosts: ['127.0.0.1']
+nrpe_dont_blame: 1
+nrpe_server_port: 5666
+nrpe_enable_sepolicy: true

@@ -1,0 +1,18 @@
+---
+# tasks file for redhat freeradius-mysql
+- name: RedHat | Enable sql module
+  file:
+    path:   "{{ freerad_confdir }}/mods-enabled/sql"
+    src:    ../mods-available/sql
+    owner:  root
+    group:  "{{ freerad_group }}"
+    state:  link
+    force:  yes
+
+- name: RedHat | Configure sql module
+  template:
+    src:    sql.conf.j2
+    dest:   "{{ freerad_confdir}}/mods-available/sql"
+    owner:  root
+    group:  "{{ freerad_group }}"
+  notify:   restart freeradius

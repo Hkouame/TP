@@ -1,0 +1,51 @@
+# Role: ansible-apache
+# Author: Aurélien FOUCRET
+# Description: vHosts management for the Apache server
+
+---
+
+- name: vhost | Ensure folders exists for vhost
+  file:
+    name: "{{vhost_options.document_root|default('/var/www/' + vhost_name)}}/{{ dir }}"
+    state: directory
+    owner: "{{apache2_user}}"
+    group: "{{apache2_group}}"
+  with_items:
+    - bin
+    - cache
+    - conf
+    - htdocs
+  loop_control:
+    loop_var: dir
+
+
+- name: vhost | Ensure folder logs exists for vhost with setype
+  file:
+    name: "{{vhost_options.document_root|default('/var/www/' + vhost_name)}}/logs"
+    state: directory
+    owner: "{{apache2_user}}"
+    group: "{{apache2_group}}"
+    setype: httpd_log_t
+
+- name: vhost | Create vhosts
+  template:
+    src: "{{vhost_options.template|default('default_vhost.j2')}}"
+    dest: "{{ apache2_vhosts_dir }}/{{vhost_options.vhost_name|default(vhost_name)}}.conf"
+  notify: "Reload Apache"
+  tags:
+    - install
+    - update_app
+
+- name: vhost | Enable/Disable vhosts
+  file:
+    name: "/etc/apache2/sites-enabled/{{vhost_options.vhost_name|default(vhost_name)}}.conf"
+    src: "{{ apache2_vhosts_dir }}/{{vhost_options.vhost_name|default(vhost_name)}}.conf"
+    state: "{{'link' if vhost_options.enabled|default('true') else 'absent' }}"
+  when: ansible_os_family == 'Debian'
+  notify: "Reload Apache"
+
+- name: vhost | Link conf vhosts
+  file:
+    src: "{{ apache2_vhosts_dir }}/{{vhost_options.vhost_name|default(vhost_name)}}.conf"
+    dest: "{{vhost_options.document_root|default('/var/www/' + vhost_name)}}/conf/{{vhost_name}}.conf"
+    state: 'link'

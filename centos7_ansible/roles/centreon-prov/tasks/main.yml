@@ -1,0 +1,59 @@
+---
+# include per-environment variables
+- include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+        - '{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml'           # CentOS-6.5
+        - '{{ ansible_os_family }}-{{ ansible_distribution_version }}.yml'              # RedHat-6.5
+        - '{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml'     # CentOS-6
+        - '{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml'        # RedHat-6
+        - '{{ ansible_distribution }}.yml'                                              # CentOS
+        - '{{ ansible_os_family }}.yml'                                                 # RedHat
+        - 'main.yml'
+      paths: '../vars'
+
+- name: centreon | Create temporary centreon directory
+  file:
+    dest:    "{{ centreon_tmp_dir }}/hosts"
+    state:   directory
+    recurse: yes
+  run_once: true
+  delegate_to: "{{ centreon_server }}"
+  tags:
+    - test
+
+- name: centreon | Copy CLAPI configuration
+  template:
+    src:  etc/centreon/clapi.conf.j2
+    dest: "{{ centreon_clapi_conf }}"
+    mode: 0600
+  run_once: true
+  delegate_to: "{{ centreon_server }}"
+
+- name: centreon | Copy script to centreon_server
+  template:
+    src:  "usr/local/sbin/{{ item }}.j2"
+    dest: "{{ centreon_script_dir }}/{{ item }}"
+    mode: 0700
+  with_items:
+      - centreon-host-add
+      - centreon-poller-get
+      - centreon-poller-reload
+  run_once: true
+  delegate_to: "{{ centreon_server }}"
+
+- name: centreon | Generate host configuration csv file
+  template: 
+    src:   "var/tmp/centreon/hosts.csv.j2"
+    dest: "{{ centreon_tmp_dir }}/hosts/{{ ansible_hostname }}.csv"
+  register: generate_conf
+  delegate_to: "{{ centreon_server }}"
+
+- name: centreon | Assemble host CSV one
+  assemble:
+    src:  "{{ centreon_tmp_dir }}/hosts"
+    dest: "{{ centreon_tmp_dir}}/hosts.csv"
+  when: generate_conf.changed
+  notify: Generate configuration
+  run_once: true
+  delegate_to: "{{ centreon_server }}"

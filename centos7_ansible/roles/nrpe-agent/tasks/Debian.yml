@@ -1,0 +1,13 @@
+---
+- name: Debian | Add Smile APT Key
+  apt_key:
+    id:             '49340A18'
+    keyserver:      keys.gnupg.net
+    state:          present
+    validate_certs: no
+
+- name: Debian | Enable Smile Debian repository
+  apt_repository:
+    repo:         'deb http://repo-systeme.dedibox.smile.fr/apt/debian {{ ansible_distribution_release }} main'
+    state:        present
+    update_cache: yes

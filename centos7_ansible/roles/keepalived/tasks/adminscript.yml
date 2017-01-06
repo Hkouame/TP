@@ -1,0 +1,25 @@
+---
+- name: main | Deploy bashrc_prompt
+  template:
+    src:   root/bashrc.d/prompt_ha
+    dest:  /root/.bashrc.d/prompt_ha
+    owner: root
+    group: root
+    mode:  0640
+  when: keepalived_deploy_adminscript == true
+
+- name: main | Deploy HA admin scripts
+  template:
+    src:   "{{ item.src }}"
+    dest:  "{{ item.dest }}"
+    owner: root
+    group: root
+    mode:  0755
+  with_items:
+    - src:  usr/local/bin/cluster-cmd
+      dest: "{{ keepalived_bindir }}/cluster-cmd"
+    - src:  usr/local/bin/cluster-watch
+      dest: "{{ keepalived_bindir }}/cluster-watch"
+    - src:  usr/local/bin/prompt_ha.sh
+      dest: "{{ keepalived_bindir }}/prompt_ha.sh"
+  when: keepalived_deploy_adminscript == true

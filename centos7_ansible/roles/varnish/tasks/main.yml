@@ -1,0 +1,112 @@
+---
+- include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+        - '{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml'           # CentOS-6.5
+        - '{{ ansible_os_family }}-{{ ansible_distribution_version }}.yml'              # RedHat-6.5
+        - '{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml'     # CentOS-6
+        - '{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml'        # RedHat-6
+        - '{{ ansible_distribution }}.yml'                                              # CentOS
+        - '{{ ansible_os_family }}.yml'                                                 # RedHat
+        - 'default.yml'
+      paths: '../vars'
+
+- include: repo-Debian.yml
+  when: varnish_use_repo and ansible_os_family == 'Debian'
+
+- include: repo-RedHat.yml
+  when: varnish_use_repo and ansible_os_family == 'RedHat'
+
+- name: "Install Varnish"
+  apt: name="{{ varnish_package_name }}" state=present
+  register: v_pkg
+  when: ansible_os_family == "Debian"
+  tags:
+      - install
+
+- name: "Install Varnish"
+  yum: name="{{ varnish_package_name }}" state=present
+  register: v_pkg
+  when: ansible_os_family == "RedHat"
+  tags:
+      - install
+
+- name: "Get Varnish version"
+  shell: "varnishd -V 2>&1 | grep ^varnishd | grep -o 'varnish-[0-9\\.]*' | cut -d - -f 2"
+  register: varnish_version_cmd
+  changed_when: False
+
+- name: "Set Varnish version fact"
+  set_fact: varnish_version="{{ varnish_version_cmd.stdout }}"
+
+
+- name: "Setup Varnish defaults"
+  template: src="{{ varnish_defaults_template }}" dest="{{ varnish_defaults_file }}"
+  notify:
+      - "Restart Varnish"
+  when: ansible_distribution_release == "wheezy" or (ansible_os_family == "RedHat" and ansible_distribution_major_version == "6")
+  tags:
+      - install
+      - update_config
+
+- name: "Setup Varnish params file"
+  template: src="{{ varnish_params_template }}" dest="{{ varnish_params_file }}"
+  when: ansible_os_family == "RedHat" and ansible_distribution_major_version == "7"
+  notify:
+      - "Restart Varnish"
+  tags:
+      - install
+      - update_config
+
+- name: "Setup Varnish configuration"
+  template: src="{{ varnish_vcl_template }}" dest="/etc/varnish/{{ varnish_vcl_name }}.vcl"
+  notify:
+      - "Reload Varnish"
+  tags:
+      - install
+      - update_config
+
+- name: Setup Varnish unit file on Jessie
+  template: src=varnish.service.j2  dest=/etc/systemd/system/varnish.service
+  when: ansible_distribution_release == "jessie"
+  register: varnish_unit_task
+  notify:
+      - "Restart Varnish"
+  tags:
+      - install
+      - update_config
+
+- name: Setup VarnishNCSA unit file on Jessie
+  template: src=varnishncsa.service.j2  dest=/etc/systemd/system/varnishncsa.service
+  when: ansible_distribution_release == "jessie"
+  register: varnish_unit_task
+  notify:
+      - "Restart VarnishNCSA"
+  tags:
+      - install
+      - update_config
+
+- name: Reload systemd when using Jessie
+  command: "systemctl daemon-reload"
+  when: ansible_distribution_release == "jessie" and varnish_unit_task|changed
+  tags:
+      - install
+      - update_config
+
+- meta: flush_handlers
+
+- name: "Start the Varnish service"
+  service: name=varnish state=started enabled=yes
+  tags:
+      - install
+
+- name: "Start the VarnishNCSA service"
+  service: name=varnishncsa state=started enabled=yes
+  tags:
+      - install
+
+- name: "Stop and disable the Varnishlog service"
+  service: name=varnishlog state=stopped enabled=no
+
+- name: "Remove Varnishlog logrotate config"
+  command: 'sed -r -i "/^.*\/varnish.log \{/,/\}/d" /etc/logrotate.d/varnish'

@@ -1,0 +1,6 @@
+---
+# vars file for freeradius-mysql
+freerad_mysql_packages:
+  - freeradius-mysql
+  - MySQL-python
+  - mysql

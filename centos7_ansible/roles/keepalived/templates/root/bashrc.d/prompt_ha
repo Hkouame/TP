@@ -1,0 +1,5 @@
+# Bashrc spécifique aux machines en haute dispo (keepalived)
+
+# Prompt rouge gras
+PROMPT_CMD="{{ keepalived_bindir }}/prompt_ha.sh"
+export PS1=$TITLEBAR'[$($PROMPT_CMD)]\[\e[1;31m\]\u@\h:\w\[\e[$(($??7:0));37m\]\$\[\e[0;0m\] '

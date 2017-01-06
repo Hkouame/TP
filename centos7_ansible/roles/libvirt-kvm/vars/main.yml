@@ -1,0 +1,4 @@
+---
+# vars file for libvirt-kvm
+libvirt_tmp_dir: /var/tmp/libvirt
+libvirt_script_dir: /usr/local/sbin

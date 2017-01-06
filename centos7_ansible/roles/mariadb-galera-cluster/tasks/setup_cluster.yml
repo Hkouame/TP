@@ -1,0 +1,140 @@
+---
+- selinux: policy=targeted state=permissive
+
+- name: setup_cluster | configuring db server and galera (Debian)
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  with_items:
+    - src: 'etc/mysql/debian.cnf.j2'
+      dest: '/etc/mysql/debian.cnf'
+    - src: 'etc/mysql/my.cnf.j2'
+      dest: '/etc/mysql/my.cnf'
+    - src: 'etc/my.cnf.d/galera.cnf.j2'
+      dest: '/etc/my.cnf.d/galera.cnf'
+  when: ansible_os_family == "Debian"
+
+- name: setup_cluster | configuring db server and galera (RedHat)
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  with_items:
+    - src: 'etc/my.cnf.d/server.cnf.j2'
+      dest: '/etc/my.cnf.d/server.cnf'
+  when: ansible_os_family == "RedHat"
+
+- name: setup_cluster | checking if galera cluster setup
+  stat:
+    path: "/etc/galera_cluster_configured"
+  register: "galera_cluster_configured"
+
+- name: setup_cluster | stopping mysql
+  service:
+    name: "mysql"
+    state: "stopped"
+  when: not galera_cluster_configured.stat.exists
+
+- name: setup_cluster | killing lingering mysql processes
+  shell: "pkill mysqld || echo noprocess"
+  when: not galera_cluster_configured.stat.exists
+
+- name: setup_cluster | configuring temp galera config (Debian)
+  template:
+    src: "etc/my.cnf.d/temp.galera.cnf.j2"
+    dest: "/etc/my.cnf.d/galera.cnf"
+  when: >
+        ansible_os_family == "Debian" and
+        not galera_cluster_configured.stat.exists and
+        inventory_hostname == mariadb_master_node
+
+- name: setup_cluster | configuring temp galera config (RedHat)
+  template:
+    src: "etc/my.cnf.d/temp.server.cnf.j2"
+    dest: "/etc/my.cnf.d/server.cnf"
+  when: >
+        ansible_os_family == "RedHat" and
+        not galera_cluster_configured.stat.exists and
+        inventory_hostname == mariadb_master_node
+
+- name: setup_cluster | add tuning configuration
+  template:
+    src: "etc/my.cnf.d/tuning.cnf.j2"
+    dest: "/etc/my.cnf.d/tuning.cnf"
+
+- name: setup_cluster | bootstrapping galera cluster
+  service:
+    name: "mysql"
+    state: "restarted"
+  when: >
+        not galera_cluster_configured.stat.exists and
+        inventory_hostname == mariadb_master_node
+
+- include: configure_wsrep_user.yml
+  when: >
+        inventory_hostname == mariadb_master_node
+
+- name: setup_cluster | waiting master to become active...
+  wait_for:
+    port: 3306
+    host: "{{ mariadb_master_node }}"
+    state: "started"
+    delay: 10
+  with_items:
+    - 3306
+    - 4567
+  when: >
+        not galera_cluster_configured.stat.exists and
+        inventory_hostname != mariadb_master_node and
+        vagrant_provision is defined
+
+- name: setup_cluster | joining galera cluster
+  service:
+    name: "mysql"
+    state: "restarted"
+  when: >
+        not galera_cluster_configured.stat.exists and
+        inventory_hostname != mariadb_master_node
+
+- name: setup_cluster | configuring galera on mariadb_master (Debian)
+  template:
+    src: "etc/my.cnf.d/galera.cnf.j2"
+    dest: "/etc/my.cnf.d/galera.cnf"
+  when: >
+        ansible_os_family == "Debian" and
+        not galera_cluster_configured.stat.exists and
+        inventory_hostname == mariadb_master_node
+
+- name: setup_cluster | configuring galera on mariadb_master (RedHat)
+  template:
+    src: "etc/my.cnf.d/server.cnf.j2"
+    dest: "/etc/my.cnf.d/server.cnf"
+  when: >
+        ansible_os_family == "RedHat" and
+        not galera_cluster_configured.stat.exists and
+        inventory_hostname == mariadb_master_node
+
+- name: setup_cluster | waiting slave to become active...
+  wait_for:
+    port: 3306
+    host: "{{ item }}"
+    state: "started"
+    delay: 20
+  with_items: "{{ groups[galera_cluster_nodes_group] }}"
+  when: >
+        not galera_cluster_configured.stat.exists and
+        inventory_hostname == mariadb_master_node and
+        vagrant_provision is defined
+
+- name: setup_cluster | restarting galera on mariadb_master
+  service:
+    name: "mysql"
+    state: "restarted"
+  when: >
+        not galera_cluster_configured.stat.exists and
+        inventory_hostname == mariadb_master_node
+
+- name: setup_cluster | marking galera cluster as configured
+  file:
+    path: "/etc/galera_cluster_configured"
+    state: "touch"
+  when: not galera_cluster_configured.stat.exists

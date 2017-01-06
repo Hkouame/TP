@@ -1,0 +1,4 @@
+---
+nginx_daemon_user: www-data
+nginx_daemon_group: www-data
+nginx_sites_default_template: "/etc/nginx/sites-enabled/{{ item }}"

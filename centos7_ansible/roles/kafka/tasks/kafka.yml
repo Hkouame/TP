@@ -1,0 +1,59 @@
+- name: kafka | Create kafka group
+  group:
+    name:  kafka
+    state: present
+
+- name: kafka | Create kafka user
+  user:
+    name:    kafka
+    comment: Kafka
+    group:   kafka
+    system:  yes
+    append:  yes
+    shell:   /sbin/nologin
+
+- name: kafka | Install kafka unit file
+  template:
+    src:   kafka.service.j2
+    dest:  /lib/systemd/system/kafka.service
+    owner: root
+    mode:  0644
+  notify:
+    - "Reload systemd"
+
+- name: kafka | Create kafka data directory
+  file:
+    path:  '{{ item }}'
+    state: directory
+    owner: kafka
+    group: kafka
+    mode:  0775
+  with_items:
+    - '{{ kafka_log_dir }}'
+    - '{{ kafka_data_dir }}'
+
+- name: kafka | Configure kafka
+  template:
+    src:   kafka.properties.j2
+    dest:  /etc/kafka/server.properties
+    owner: root
+    group: root
+    mode:  0644
+  notify:
+      - "Restart Kafka"
+
+- name: kafka | Deploy admin script
+  copy:
+    src:   "usr/local/bin/{{ item }}"
+    dest:  "/usr/local/bin/{{ item }}"
+    owner: root
+    group: root
+    mode:  0750
+  with_items:
+    - kafka-topic-read
+    - kafka-topic-write
+    - kafka-topic-create
+    - kafka-topic-delete
+    - kafka-topic-list
+    - kafka-topic-describe
+

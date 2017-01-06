@@ -1,0 +1,21 @@
+module nrpe-named 1.0;
+
+require {
+	type ndc_exec_t;
+	type dnssec_t;
+	type nrpe_t;
+	type rndc_port_t;
+	class capability dac_override;
+	class tcp_socket name_connect;
+	class file { execute read open getattr execute_no_trans };
+	class capability2 block_suspend;
+}
+
+#============= nrpe_t ==============
+allow nrpe_t dnssec_t:file { read getattr open };
+allow nrpe_t ndc_exec_t:file { read execute open execute_no_trans };
+
+#!!!! This avc can be allowed using the boolean 'nis_enabled'
+allow nrpe_t rndc_port_t:tcp_socket name_connect;
+allow nrpe_t self:capability dac_override;
+allow nrpe_t self:capability2 block_suspend;

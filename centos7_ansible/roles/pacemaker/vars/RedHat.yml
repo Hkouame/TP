@@ -1,0 +1,15 @@
+pcmk_packages_utils:
+  - lsof
+  - policycoreutils-python
+
+pcmk_packages_name:
+  - pcs
+  - policycoreutils-python
+
+pcmk_pcs_service_name:
+  - pcsd
+
+pcmk_services_name:
+  - pcsd
+  - pacemaker
+  - corosync

@@ -1,0 +1,8 @@
+---
+- name: "Restart Nginx"
+  service: name=nginx state=restarted
+  register: nginx_restarted
+
+- name: "Reload Nginx"
+  service: name=nginx state=reloaded
+  when: not nginx_restarted.changed

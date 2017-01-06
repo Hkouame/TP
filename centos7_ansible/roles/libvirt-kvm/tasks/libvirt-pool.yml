@@ -1,0 +1,23 @@
+---
+- name: libvirt-pool | Define pool {{ libvirt_pool.name }} 
+  virt_pool:
+    name:      "{{ libvirt_pool.name }}"
+    command:   define
+    xml:       '{{ lookup("template", "var/tmp/libvirt/pool.xml.j2") }}'
+  register: pool_define
+
+- name: libvirt-pool | Create directory pool {{ libvirt_pool.name }} 
+  virt_pool:
+    name: "{{ libvirt_pool.name }}" 
+    command: build
+  when: pool_define.changed
+
+- name: libvirt-pool | Activate pool {{ libvirt_pool.name }} 
+  virt_pool:
+    name: "{{ libvirt_pool.name }}" 
+    state:   active
+
+- name: libvirt-pool | Set autostart on pool {{ libvirt_pool.name }} 
+  virt_pool:
+    name: "{{ libvirt_pool.name }}" 
+    autostart: yes

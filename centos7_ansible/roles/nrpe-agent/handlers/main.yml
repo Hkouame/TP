@@ -1,0 +1,6 @@
+---
+# handlers file for nrpe
+- name: Restart NRPE
+  service:
+    name:  "{{ nrpe_service }}"
+    state: restarted

@@ -1,0 +1,13 @@
+---
+
+- name: Redhat | Ensure firewalld is installed
+  package:
+    name: firewalld
+    state: present
+
+- name: RedHat | start and enable firewalld
+  service:
+    name: firewalld
+    state: started
+    enabled: yes
+

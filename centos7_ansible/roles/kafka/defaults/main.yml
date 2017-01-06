@@ -1,0 +1,51 @@
+---
+# Default settings for kafka
+
+# Scala Version (2.10.5 or 2.11.7 available)
+kafka_scala_version: "2.11.7"
+
+# ZooKeeper network configuration properties
+zk_client_port: 2181
+zk_follower_port: 2888
+zk_election_port: 3888
+zk_max_client_connexions: 0
+zk_autopurge_snapRetainCount: 3
+zk_autopurge_purgeInterval: 24
+
+# Zookeeper data storage path
+zk_data_dir: "/var/lib/zookeeper"
+
+# Zookeeper tuning properties
+zk_tickTime: 3000
+zk_initLimit: 10
+zk_syncLimit: 5
+
+# Zookeeper cluster members
+zk_hosts: ['localhost']
+
+# Kafka base settings
+
+# Kafka network config
+kafka_port: 9092
+
+# Kafka storage path
+kafka_log_dir: "/var/log/kafka"
+kafka_data_dir: "/var/lib/kafka"
+
+# Retention policy:
+kafka_log_retention_hour: 48
+kafka_log_retention_bytes: 1073741824
+kafka_log_segment_bytes: 1073741824
+
+# Kafka tuning properties
+kafka_num_partitions: 1
+kafka_default_replication_factor: 1
+kafka_num_network_threads: 8
+kafka_num_io_threads: 8
+kafka_socket_send_buffer_bytes: 1048576
+kafka_socket_receive_buffer_bytes: 1048576
+kafka_socket_request_max_bytes: 104857600
+
+# Firewall setting
+firewall_setup: True
+firewall_type: "firewalld"

@@ -1,0 +1,3 @@
+---
+# vars file for logstash
+ls_path_conf:  /etc/logstash

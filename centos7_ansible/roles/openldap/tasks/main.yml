@@ -1,0 +1,31 @@
+---
+- name: Install OpenLDAP
+  apt: name=slapd state=installed
+
+- name: Remove slapd.d configuration
+  file: path=/etc/ldap/slapd.d state=absent
+
+- name: Copy configuration template
+  template: src=slapd.conf.j2 dest=/etc/ldap/slapd.conf
+  notify: Restart OpenLDAP
+
+- name: Test if rootDN exists in database
+  command: "slapcat -H ldap:///{{ openldap_suffix }}??base?"
+  changed_when: False
+  register: rootdnexist
+  ignore_errors: True
+
+- name: Stop OpenLDAP before import
+  service: name=slapd state=stopped
+  when: rootdnexist.stdout|length == 0 and openldap_ldif is defined
+
+- name: Copy LDIF data
+  copy: src="{{ openldap_ldif|default('example.ldif') }}" dest=/var/lib/ldap/data.ldif
+  when: rootdnexist.stdout|length == 0 and openldap_ldif is defined
+
+- name: Import LDIF data
+  command: su openldap -s /bin/sh -c '/usr/sbin/slapadd -l /var/lib/ldap/data.ldif'
+  when: rootdnexist.stdout|length == 0 and openldap_ldif is defined
+
+- name: Enable OpenLDAP service
+  service: name=slapd state=started enabled=yes

@@ -1,0 +1,34 @@
+#!/bin/bash
+
+syntax() {
+    echo "Usage: ${0##*/} -d -p prefix -o older_than"
+    echo
+    echo "Options:"
+    echo "  -d             Do not perform any changes"
+    echo "  -p prefix      Include only indices beginning with prefix"
+    echo "  -o older_than  Include only indices older than n days"
+
+    exit 1
+}
+
+while getopts "dp:o:" opt
+do
+    case $opt in
+        p) IDX_PREFIX=$OPTARG
+        ;;
+        o) DAYS=$OPTARG
+        ;;
+		d) OPTS='--dry-run'
+		;;
+        *) syntax
+        ;;
+    esac
+done
+
+if [ -z "$IDX_PREFIX" -o -z "$DAYS" ]; then
+	syntax
+fi
+
+curator $OPTS --master-only delete indices --older-than ${DAYS}  --time-unit days --timestring '%Y.%m.%d' --prefix ${IDX_PREFIX}
+
+exit $?

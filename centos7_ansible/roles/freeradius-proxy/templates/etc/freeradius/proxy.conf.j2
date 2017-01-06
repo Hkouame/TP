@@ -1,0 +1,38 @@
+# Proxy configuration
+proxy server {
+	default_fallback = no
+}
+
+{% for server in freerad_prx_home_server %}
+# Home server {{ server }}
+home_server {{ server }} {
+	type = {{ freerad_prx_rq_type }}
+	ipaddr = {{ server }}
+	port = {{ freerad_prx_port }}
+	secret = {{ freerad_prx_secret }}
+
+	response_window = 5
+	zombie_period = 20
+
+	status_check = status-server
+	check_interval = 6
+	check_timeout = 4
+	num_answers_to_alive = 3
+}
+
+{% endfor %}
+# Server pool
+home_server_pool server_pool {
+	type = {{ freerad_prx_lb_type }}
+{% for server in freerad_prx_home_server %}
+	home_server = {{ server }}
+{% endfor %}
+}
+
+# Fake realm
+realm fake_realm {
+	pool = server_pool
+}
+
+realm LOCAL {
+}

@@ -1,0 +1,18 @@
+# default: on
+# description: galera-check
+
+service {{galera_monitor_script_name}}
+{
+  disable = no
+  flags = REUSE
+  socket_type = stream
+  port = 9200
+  wait = no
+  user = nobody
+  server = {{galera_monitor_script_path}}/{{galera_monitor_script_name}}
+  server_args = /etc/mysql/auth.d/nagios.cnf
+  log_on_failure += USERID
+  log_on_success =
+  only_from = 0.0.0.0/0
+  per_source = UNLIMITED
+}

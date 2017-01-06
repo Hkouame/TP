@@ -1,0 +1,5 @@
+---
+- name: csync2_cfg | Deploy csync2 group {{ csync2_group[0]['name'] }}
+  template:
+    src:  csync2.cfg.j2
+    dest: "{{ csync2_conf_dir }}/csync2_{{ csync2_group[0]['name'] }}.cfg"

@@ -1,0 +1,15 @@
+---
+tomcat_codename: "tomcat{{ tomcat_version }}"
+tomcat_java_default_package_list:
+- "openjdk-{{ tomcat_java_version }}-jre"
+tomcat_default_package_list:
+- "{{ tomcat_package_name }}"
+tomcat_mysql_connector_package: libmysql-java
+tomcat_default_file_path: "/etc/default/{{ tomcat_codename }}"
+tomcat_package_name: "{{ tomcat_codename }}"
+tomcat_service_name: "{{ tomcat_codename }}"
+tomcat_conf_path: "/etc/{{ tomcat_codename }}"
+tomcat_webapp_path: "/var/lib/{{ tomcat_codename }}/webapps"
+tomcat_lib_path: "/usr/share/{{ tomcat_codename }}/lib/"
+tomcat_user: "{{ tomcat_codename }}"
+tomcat_group: "{{ tomcat_codename }}"

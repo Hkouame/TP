@@ -1,0 +1,16 @@
+---
+
+- name: Lsyncd
+  hosts: hosts-web
+  roles:
+    - role: csync2-lsyncd
+      csync2_hosts: "{{ groups['hosts-web'] }}"
+      csync2_groups_groups:
+        - name: 'httpd'
+          includes:
+              - '/etc/httpd'
+          actions:
+              - name: httpd
+                pattern: '/etc/httpd/*'
+                exec: 'service httpd reload'
+                do_local: true

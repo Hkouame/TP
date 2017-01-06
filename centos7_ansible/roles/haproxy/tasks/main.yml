@@ -1,0 +1,64 @@
+---
+# include per-environment variables
+- include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+        - '{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml'           # CentOS-6.5
+        - '{{ ansible_os_family }}-{{ ansible_distribution_version }}.yml'              # RedHat-6.5
+        - '{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml'     # CentOS-6
+        - '{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml'        # RedHat-6
+        - '{{ ansible_distribution }}.yml'                                              # CentOS
+        - '{{ ansible_os_family }}.yml'                                                 # RedHat
+        - 'main.yml'
+      paths: '../vars'
+
+- name: main | Install HAProxy
+  package:
+    name:  '{{ haproxy_package_name }}'
+    state: installed
+
+- include: '{{ ansible_os_family }}.yml'
+
+- name: main | Get HAProxy version
+  command:      haproxy -v
+  register:     haproxy_version_result
+  changed_when: false
+  always_run:   yes
+
+- name: main | Set HAProxy version
+  set_fact:
+    haproxy_version: "{{ '1.5' if '1.5.' in haproxy_version_result.stdout else '1.4' }}"
+
+- name: main | Copy rsyslog configuration file
+  copy: 
+    src:   etc/rsyslog.d/haproxy.conf
+    dest:  /etc/rsyslog.d/haproxy.conf
+    owner: root
+    group: root
+    mode:  0640
+  notify:
+    - restart rsyslog
+
+- name: main | Copy HAProxy configuration in file
+  template: 
+    src:   etc/haproxy/haproxy.cfg.j2
+    dest:  '{{ haproxy_confdir }}/haproxy.cfg'
+    owner: root
+    group: '{{ haproxy_group }}'
+    mode:  0640
+  notify: restart haproxy
+
+- name: main | Ensure HAProxy is started and enabled on boot
+  service:
+    name:    '{{ haproxy_service_name }}'
+    state:   started
+    enabled: yes
+
+- name: main | Allow non local bind address
+  sysctl:
+    name:  net.ipv4.ip_nonlocal_bind
+    value: 1
+    state: present
+
+- include: install_hatop.yml
+  when: haproxy_install_hatop == true

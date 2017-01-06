@@ -1,0 +1,5 @@
+---
+# defaults file for mule-esb
+mule_esb_path_data: /srv
+mule_esb_path_logs: /var/log/mule-standalone
+mule_esb_version: 3.8

@@ -1,0 +1,3 @@
+---
+ - name: restart freeradius
+   service: name="{{ freerad_service_name }}" state=restarted

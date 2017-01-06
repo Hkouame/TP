@@ -1,0 +1,4 @@
+---
+nginx_daemon_user: nginx
+nginx_daemon_group: nginx
+nginx_sites_default_template: "/etc/nginx/conf.d/{{ item }}.conf"

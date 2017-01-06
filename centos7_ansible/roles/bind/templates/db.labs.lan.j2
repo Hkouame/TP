@@ -1,0 +1,11 @@
+$TTL 14440	; 4 hours 40 seconds
+@	IN 	SOA	 ns.{{ bind_deploy_zone_name }}. admin.{{ bind_deploy_zone_name }}. (
+				2015052901 ; serial
+				14400      ; refresh (4 hours)
+				7200       ; retry (2 hours)
+				3600000    ; expire (5 weeks 6 days 16 hours)
+				86400      ; minimum (1 day)
+				)
+		IN	NS	ns
+
+ns		IN	A	192.168.122.1

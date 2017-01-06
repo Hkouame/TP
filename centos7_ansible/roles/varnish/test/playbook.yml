@@ -1,0 +1,7 @@
+- hosts: all 
+  vars:
+    varnish_use_repo: 4.0
+  roles:
+    - role: ansible-varnish
+  post_tasks:
+    - wait_for: port=80 timeout=20

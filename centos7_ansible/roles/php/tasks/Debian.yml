@@ -1,0 +1,28 @@
+- name: "Install PHP and extras packages"
+  apt: name={{item}} state="present"
+  with_items: "{{ php_packages + php_extension_packages + php_extra_packages }}"
+  notify: "Restart Apache"
+  tags:
+    - install
+    - update_config
+    - update_app
+
+- name: "Register PHP version"
+  command: 'php -r "echo PHP_MAJOR_VERSION.\"\n\".PHP_MINOR_VERSION.\"\n\";"'
+  register: phpver
+  changed_when: False
+
+- name: "Install APC on PHP<5.5"
+  apt: name=php-apc state=present
+  notify: "Restart Apache"
+  when: phpver.stdout_lines[0]|int == 5 and phpver.stdout_lines[1]|int <5
+
+- name: "PHP Configuration override"
+  template: src=configuration-{{ item }}.ini.j2 dest="/etc/php5/{{ item }}/conf.d/80-ansible-{{ item }}.ini"
+  notify: "Reload Apache"
+  with_items:
+      - apache2
+      - cli
+  tags:
+    - install
+    - update_config

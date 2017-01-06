@@ -1,0 +1,7 @@
+---
+packages:
+  - net-snmp
+  - net-snmp-utils
+  - net-snmp-libs
+  - net-snmp-perl
+  - libsmi

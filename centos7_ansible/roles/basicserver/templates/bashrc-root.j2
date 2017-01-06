@@ -1,0 +1,71 @@
+# Avoid deletion of screen
+export LESS="-X"
+export PAGER=/usr/bin/less
+export EDITOR=vi
+
+alias ls='/bin/ls -CF'
+alias more='less'
+alias m='mysql --defaults-extra-file=/etc/mysql/debian.cnf'
+
+# Define graphic term title bar
+case $TERM in
+    xterm*|rxvt)
+        TITLEBAR='\[\e]0;\h:\w\a\]';
+        ;;
+    *)
+        TITLEBAR="";
+        ;;
+esac
+
+# Bash prompt configuration
+{% if promptcolor == "black" %}
+_PC=30
+{% elif promptcolor == "red" %}
+_PC=31
+{% elif promptcolor == "green" %}
+_PC=32
+{% elif promptcolor == "yellow" %}
+_PC=33
+{% elif promptcolor == "blue" %}
+_PC=34
+{% elif promptcolor == "magenta" %}
+_PC=35
+{% elif promptcolor == "cyan" %}
+_PC=36
+{% elif promptcolor == "white" %}
+_PC=37
+{# green by default #}
+{% else %}
+_PC=31
+{% endif %}
+{% if promptbold |bool %}
+_PT=1
+{% else %}
+_PT=0
+{% endif %}
+
+export PS1=$TITLEBAR'\[\e['$_PT';'$_PC'm\]\h:\w\[\e[$(($??7:0));37m\]\$\[\e[0;0m\] '
+
+umask 022
+
+export LS_OPTIONS='--color=auto'
+eval `dircolors`
+alias ls='ls $LS_OPTIONS'
+alias ll='ls $LS_OPTIONS -l'
+alias l='ls $LS_OPTIONS -lA'
+
+# Tabulation rules 
+[ -f /etc/bash_completion ] && . /etc/bash_completion
+
+# Do not clear screen when less finishes, keeps the man on screen
+export LESS='FiX'
+
+# Finally source other 'bashrc' files:
+if [ -d ~/.bashrc.d ]; then
+    for i in ~/.bashrc.d/*; do
+        if [ -r $i ]; then
+            . $i
+        fi
+    done
+    unset i
+fi

@@ -1,0 +1,13 @@
+---
+- name: Elasticsearch | Add elasticsearch key
+  tags: key
+  apt_key:
+      keyserver: pgp.mit.edu
+      id: 46095ACC8548582C1A2699A9D27D666CD88E42B4
+
+- name: Elasticsearch |  Add debian repo
+  apt_repository:
+      filename: 'elasticsearch'
+      repo: 'deb http://packages.elastic.co/elasticsearch/2.x/debian stable main'
+      state: present
+      update_cache: yes

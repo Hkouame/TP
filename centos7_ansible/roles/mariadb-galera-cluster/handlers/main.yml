@@ -1,0 +1,16 @@
+---
+# handlers file for ansible-mariadb-galera-cluster
+- name: restart mysql
+  service:
+    name:  mysql
+    state: restarted
+
+- name: reload mysql
+  service:
+    name:  mysql
+    state: reloaded
+
+- name: restart xinetd
+  service:
+    name:  xinetd
+    state: restarted

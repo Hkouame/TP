@@ -1,0 +1,36 @@
+---
+# Logstash version
+logstash_version: 2.4
+# Standard settings
+ls_worker: "{{ ansible_processor_vcpus }}"
+ls_batch_size: 10000
+ls_heap_size_prct: 0.95
+ls_heap_size: "{{ (ansible_memtotal_mb*ls_heap_size_prct)|int }}m"
+ls_nice: 19
+
+# Defaults file for logstash
+ls_path_data: /var/lib/logstash
+ls_path_logs: /var/log/logstash
+ls_path_bin: /opt/logstash/bin
+
+# Plugin management
+ls_plugins : []
+
+# Ports logstash is listening (update firewalld config)
+ls_binding_ports: [5043]
+
+# Kafka configuration
+ls_input_kafka: false
+ls_output_kafka: false
+ls_kafka_topic: logstash
+ls_kafka_hosts: ['localhost']
+ls_kafka_port: 9092
+ls_kafka_zk_port: 2181
+
+# Kafka configuration
+ls_output_elasticsearch: false
+ls_elasticsearch_hosts: ['localhost']
+
+# Firewall default setings
+firewall_setup: True
+firewall_type: firewalld

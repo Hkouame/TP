@@ -1,0 +1,8 @@
+# Input from Kafka
+input {
+  kafka {
+    type => "event"
+    topic_id => "{{ ls_kafka_topic }}"
+    zk_connect => "{% for h in ls_kafka_hosts -%}{{ h }}:{{ ls_kafka_zk_port }}{%- if not loop.last -%},{% endif %}{% endfor %}" 
+  }
+}

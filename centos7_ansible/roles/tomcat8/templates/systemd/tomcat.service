@@ -1,0 +1,13 @@
+[Unit]
+Description=Tomcat Instance
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart={{tomcat_root_dir}}/bin/startup.sh
+ExecStop={{tomcat_root_dir}}/bin/shutdown.sh
+User={{tomcat_user}}
+Group={{tomcat_group}}
+
+[Install]
+WantedBy=multi-user.target

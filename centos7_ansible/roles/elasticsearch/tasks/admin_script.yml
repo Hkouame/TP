@@ -1,0 +1,23 @@
+---
+- name: admin_script | Enable EPEL Repo
+  package:
+    name: epel-release
+
+- name: admin_script | Install JQ
+  package:
+    name: jq
+
+- name: admin_script | Install backup scripts
+  copy:
+    src:   "usr/local/bin/{{ item }}"
+    dest:  "/usr/local/bin/{{ item }}"
+    owner: root
+    group: elasticsearch
+    mode:  0750
+  with_items:
+    - es-indice-list
+    - es-indice-purge
+    - es-snapshot-indices
+    - es-snapshot-list
+    - es-snapshot-purge
+    - es-snapshot-restore
