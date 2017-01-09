@@ -1,0 +1,15 @@
+$TTL 14440
+@       IN      SOA     ns.{{ key }}.   admin.{{ key }}. (
+                        2016052601      ; Serial
+                        10800           ; Refresh 3 hours
+                        3600            ; retry 1 hour
+                        604800          ; expire 1 week
+                        600 )           ; min TTL 1 day
+
+{% for srv in zone.servers %}
+		IN	NS	ns{{ loop.index }}.{{ key }}.
+{% endfor %}
+
+{% for srv in zone.servers %}
+{{ srv.split('.')[3]}}		IN	PTR	ns{{ loop.index }}.{{ key }}.
+{% endfor %}

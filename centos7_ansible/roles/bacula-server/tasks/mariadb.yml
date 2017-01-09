@@ -1,0 +1,52 @@
+- name: mariadb | Waiting for database to become available {{ bacula_db_remote_host }}:{{ bacula_db_port }}
+  wait_for:
+    port: "{{ bacula_db_port }}"
+    host: "{{ bacula_db_remote_host }}"
+
+- name: mariadb | Init bacula database on {{ bacula_db_remote_host }}
+  copy:
+    src:  bacula_schema.sql
+    dest: /tmp
+  run_once: true
+  delegate_to: "{{ bacula_db_remote_host }}"
+  register: import_schema
+
+- name: mariadb | Create database {{ bacula_db_name }}
+  mysql_db:
+    login_user:     "{{ bacula_db_admin_user }}"
+    login_password: "{{ bacula_db_admin_pass }}"
+    login_host:     127.0.0.1
+    name:           "{{ bacula_db_name }}"
+    state:          present
+  run_once: true
+  delegate_to: "{{ bacula_db_remote_host }}"
+
+- name: mariadb | Import bacula database schema
+  mysql_db:
+    login_user:     "{{ bacula_db_admin_user }}"
+    login_password: "{{ bacula_db_admin_pass }}"
+    login_host:     127.0.0.1
+    name:           "{{ bacula_db_name }}"
+    state:          import
+    target:         /tmp/bacula_schema.sql
+  run_once: true
+  delegate_to: "{{ bacula_db_remote_host }}"
+  when: import_schema.changed
+
+- name: mariadb | Create {{ bacula_db_user}} user and set privileges on {{ bacula_db_name }} database
+  mysql_user:
+    login_user:     "{{ bacula_db_admin_user }}"
+    login_password: "{{ bacula_db_admin_pass }}"
+    login_host:     127.0.0.1
+    name:           "{{ bacula_db_user }}"
+    password:       "{{ bacula_db_pass }}"
+    host:           "%"
+    priv:           "{{ bacula_db_name }}.*:ALL"
+    state:          present
+  run_once: true
+  delegate_to: "{{ bacula_db_remote_host }}"
+
+- name: mariadb | Using mysql library
+  alternatives:
+    name: libbaccats.so
+    path: /usr/lib64/libbaccats-mysql.so

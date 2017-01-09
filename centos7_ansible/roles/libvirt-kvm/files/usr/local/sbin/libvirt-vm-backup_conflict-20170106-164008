@@ -35,7 +35,12 @@ IMAGES=`virsh domblklist "$DOMAIN" --details | grep -v hdc | grep ^file | awk '{
 #
 DISKSPEC=""
 for t in $TARGETS; do
-    virsh blockpull $DOMAIN $t
+    IMAGE=`virsh domblklist "$DOMAIN" --details | grep $t | grep ^file | awk '{print $4}'`
+    qemu-img info $IMAGE | grep backing
+    if [ $? -eq 0 ]; then
+      echo "Polling image $t for $DOMAIN"
+      virsh blockpull --wait $DOMAIN $t
+    fi
     DIR=$(virsh domblklist "$DOMAIN" --details | grep $t | grep ^file | awk '{print $4}' | xargs dirname)
     DISKSPEC="$DISKSPEC --diskspec $t,file=$DIR/$DOMAIN-$t.backup"
 done
@@ -86,7 +91,7 @@ i=1
 for b in $LIST; do
     if [ $i -gt "$MAXBACKUPS" ]; then
         echo "Removing old backup "`basename $b`
-        rm -rf "$b"
+        rm -rf "$BACKUPDEST/$DOMAIN/$b"
     fi
 
     i=$[$i+1]

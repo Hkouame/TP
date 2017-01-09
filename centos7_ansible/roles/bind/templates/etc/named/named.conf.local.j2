@@ -1,0 +1,17 @@
+zone "122.168.192.in-addr.arpa" {
+    type master;
+    file "db.122.168.192";
+    allow-query { any; };
+{% if bind_ddns_enable %}
+    allow-update { key "{{ bind_ddns_key_name }}"; };
+{% endif %}
+};
+
+zone "{{ bind_deploy_zone_name }}" {
+    type master;
+    file "db.{{ bind_deploy_zone_name }}";
+    allow-query { any; };
+{% if bind_ddns_enable %}
+    allow-update { key "{{ bind_ddns_key_name }}"; };
+{% endif %}
+};

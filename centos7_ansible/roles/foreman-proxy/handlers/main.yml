@@ -1,0 +1,6 @@
+---
+# handlers file for foreman-proxy
+- name: restart foreman-proxy
+  service:
+    name:  foreman-proxy
+    state: restarted

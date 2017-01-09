@@ -1,0 +1,47 @@
+Client {
+  Name = {{ bacula_fd_name }}
+  Address = {{ bacula_fd_name }}
+  FDPort = {{ bacula_fd_port }}
+  Password = "{{ bacula_fd_password }}"
+  Catalog = MyCatalog
+  AutoPrune = yes
+}
+
+FileSet {
+  Name = "{{ bacula_fd_name }}"
+  Include {
+    Options {
+      Signature = MD5
+      Compression =  GZIP
+    }
+{% for data in filesets %}
+{% if data.name in group_names %}
+{% if data.include is defined %}
+{% for file in data.include %}
+    File = {{ file }}
+{% endfor %}
+{% endif %}
+{% endif %}
+{% endfor %}
+  }
+
+  Exclude {
+{% for fileset  in filesets %}
+{% if fileset.name in group_names %}
+{% if fileset.exclude is defined  %}
+{% for file in fileset.exclude %}
+    File = {{ file }}
+{% endfor %}
+{% endif %}
+{% endif %}
+{% endfor %}
+  }
+}
+
+Job {
+    Name = "{{ bacula_fd_name }}"
+    Enabled = "Yes"
+    JobDefs = "DefaultJob"
+    Client = "{{ bacula_fd_name }}"
+    FileSet = "{{ bacula_fd_name }}"
+}

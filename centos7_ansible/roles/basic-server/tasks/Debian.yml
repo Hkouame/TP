@@ -1,0 +1,31 @@
+---
+- name: Debian | Refresh APT repositories
+  apt:
+    update_cache: yes
+    cache_valid_time: 28800
+
+- name: Debian | install locales
+  apt:
+    name: locales
+
+- name: Debian | configure locales
+  copy:
+    src:  locale.gen
+    dest: /etc/locale.gen
+  notify:
+    - regenerate locales
+
+- name: Debian | configure apt to not install recommands
+  lineinfile:
+    regexp: "^aptitude::Recommends-Important"
+    line:   "aptitude::Recommends-Important \"false\";"
+    dest:   /etc/apt/apt.conf
+    create: yes
+
+- name: Debian | set rcS options
+  lineinfile: dest=/etc/default/rcS line={{ item.line }} regexp={{ item.regexp }}
+  with_items:
+    - line: "TMPTIME=10"
+      regexp: "^#?TMPTIME"
+    - line: "FSCKFIX=yes"
+      regexp: "^#?FSCKFIX"

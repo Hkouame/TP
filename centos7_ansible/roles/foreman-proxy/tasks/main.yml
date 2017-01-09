@@ -1,0 +1,66 @@
+---
+# tasks file for foreman-proxy
+- include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+        - '{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml'           # CentOS-6.5
+        - '{{ ansible_os_family }}-{{ ansible_distribution_version }}.yml'              # RedHat-6.5
+        - '{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml'     # CentOS-6
+        - '{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml'        # RedHat-6
+        - '{{ ansible_distribution }}.yml'                                              # CentOS
+        - '{{ ansible_os_family }}.yml'                                                 # RedHat
+        - 'main.yml'
+      paths: '../vars'
+
+- include: "{{ ansible_os_family }}.yml"
+
+- name: main | Install foreman-proxy package
+  package:
+    name:  foreman-proxy
+    state: installed
+    update_cache: yes
+
+- name: main | Deploy DNS configuration file
+  template:
+    src:   "etc/foreman-proxy/settings.d/{{ item }}.j2"
+    dest:  "/etc/foreman-proxy/settings.d/{{ item }}"
+    owner: root
+    group: root
+    mode:  0644
+  with_items:
+    - dns.yml
+    - dns_nsupdate.yml
+  notify: restart foreman-proxy
+
+- name: main | Deploy foreman-proxy main configuration file
+  template:
+    src:   "etc/foreman-proxy/settings.yml.j2"
+    dest:  "/etc/foreman-proxy/settings.yml"
+    owner: root
+    group: root
+    mode:  0644
+  notify: restart foreman-proxy
+
+- stat: path="{{ foreman_proxy_dns_key }}"
+  register: keyfile_src
+
+- stat: path="/etc/foreman-proxy/dns-foreman.key"
+  register: keyfile_dest
+
+- name: main | Copy DNS key file
+  command: "cp {{ foreman_proxy_dns_key }} /etc/foreman-proxy/dns-foreman.key"
+  when: keyfile_src.stat.exists and (not keyfile_dest.stat.exists)
+  notify: restart foreman-proxy
+
+- name: main | Set permission on DNS key file
+  file:
+    path: /etc/foreman-proxy/dns-foreman.key
+    owner: foreman-proxy
+    group: foreman-proxy
+    mode:  0640
+
+- name: main | Start and enable foreman-proxy service
+  service:
+    name:  foreman-proxy
+    state: started
+    enabled: yes

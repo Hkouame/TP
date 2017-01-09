@@ -1,0 +1,65 @@
+---
+# defaults file for bacula
+# Bacula File daemon variables
+bacula_fd_port: 9102
+bacula_fd_name: "{{ ansible_fqdn }}"
+bacula_fd_password: changeme
+bacula_fd_max_concurrent_job: 5
+bacula_fd_restore_dir: /var/lib/bacula-restores
+bacula_fd_heartbeat_interval: 60
+
+# Bacula director variables
+bacula_dir_host: bacula
+bacula_dir_name: "{{ bacula_dir_host }}"
+
+firewall_setup: true
+firewall_type:  firewalld
+
+filesets:
+  - name: bacula-agent
+    include:
+      - /etc/
+      - /usr/local/bin
+      - /usr/local/sbin
+      - /var/spool/cron
+  - name: elastic
+    include:
+      - /etc/
+  - name: puppet
+    include:
+      - /var/lib/puppet
+  - name: haproxy
+    include:
+      - /var/www/html
+  - name: keepalived
+    include:
+      - /var/www/html
+  - name: mcollective
+    include:
+      - /etc/mcollective
+    exclude:
+      - /etc/mcollective/ssl
+  - name: muleesb
+    include:
+      - /srv/mule-standalone
+    exclude:
+      - /srv/mule-standalone/logs
+  - name: glassfish
+    include:
+      - /root/.asadminpass
+      - /srv/backup/config
+      - /srv/backup/scripts
+      - /srv/backup/glassfish3
+    exclude:
+      - /srv/backup/scripts/*/logs
+      - /srv/backup/scripts/*/*/logs
+      - /srv/backup/glassfish3/domains/*/osgi-cache
+      - /srv/backup/glassfish3/domains/*/logs
+      - /srv/backup/glassfish3/domains/*/generated
+      - /srv/backup/glassfish3/domains/*/config/pid*
+      - /srv/backup/glassfish3/domains/*/config/lockfile
+      - /srv/backup/glassfish3/domains/*/config/local-password
+      - /srv/backup/glassfish3/domains/*/config/domain.xml.bak
+      - /srv/backup/glassfish3/domains/*/config/generated
+    before: /usr/local/sbin/pre_backup.sh
+    after: /usr/local/sbin/post_backup.sh

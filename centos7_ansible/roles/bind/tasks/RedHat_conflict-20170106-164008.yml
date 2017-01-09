@@ -1,0 +1,145 @@
+---
+# tasks file for redhat bind
+- name: RedHat | Install package
+  package:
+    name: "{{ item }}"
+  with_items: "{{ bind_package_list }}"
+
+- name: RedHat | Create Bind log and run directory
+  file:
+    path:  "{{ item }}"
+    state: directory
+    owner: "{{ bind_user }}"
+    group: "{{ bind_group }}"
+    mode:  0755
+  with_items:
+    - "{{ bind_run_dir }}"
+    - "{{ bind_log_dir }}"
+
+- name: RedHat | Create Bind cache directory
+  file:
+    path:    "{{bind_cache_dir}}/data"
+    state:   directory
+    owner:   root
+    group:   "{{ bind_group }}"
+    mode:    0755
+    recurse: yes
+
+- name: RedHat | Create zone configuration directory
+  file:
+    path: "{{ bind_conf_dir }}/zone"
+    state: directory
+    owner: "{{ bind_user }}"
+    group: "{{ bind_group }}"
+    mode:  0750
+
+- name: RedHat | Deploy main configuration
+  template:
+    src:   "{{ item.src }}"
+    dest:  "{{ item.dest }}"
+    owner: root
+    group: "{{ bind_group }}"
+    mode:  0640
+  with_items:
+      - src:  etc/named.conf.j2
+        dest: "{{ bind_conf_dir }}.conf"
+      - src:  etc/named/named.conf.options.j2
+        dest: "{{ bind_conf_dir }}/named.conf.options"
+      - src:  etc/sysconfig/sysconfig-named.j2
+        dest: /etc/sysconfig/named
+  notify: "Restart Bind"
+
+- find:
+    path:    "{{ bind_conf_dir }}"
+    pattern: "K{{ bind_ddns_key_name }}*.private"
+  register: keyfile_priv
+
+- name: RedHat | Generate ddns key
+  command: "dnssec-keygen -r /dev/urandom -a HMAC-MD5 -b 512 -n HOST {{ bind_ddns_key_name }}"
+  args:
+    chdir: "{{ bind_conf_dir }}"
+  when: bind_ddns_enable == true and keyfile_priv.matched == 0
+
+- find:
+    path:    "{{ bind_conf_dir }}"
+    pattern: "K{{ bind_ddns_key_name }}*.key"
+  register: keyfile_key
+  when: bind_ddns_enable
+
+- name: RedHat | Create generic link name to ddns key
+  file:
+    src:  "{{ keyfile_key.files[0].path }}"
+    dest:  /etc/named/Knsupdate.key
+    state: link
+  when: bind_ddns_enable
+
+- name: RedHat | Get ddns key
+  shell: "cat {{ bind_conf_dir }}/K{{ bind_ddns_key_name }}.*.private | grep Key: | awk '{print $2}'"
+  changed_when: false
+  register: keyval
+  when: bind_ddns_enable
+
+- set_fact:
+    bind_ddns_key: "{{ keyval.stdout }}"
+  when: bind_ddns_enable
+
+- name: RedHat | SELinux allow named to write on master zone
+  seboolean:
+    name:       named_write_master_zones
+    state:      yes
+    persistent: yes
+  when: bind_ddns_enable
+
+- name: RedHat | Deploy ddns admin scripts
+  template:
+    src:  "usr/local/sbin/{{ item }}.j2"
+    dest: "/usr/local/sbin/{{ item }}"
+    owner: root
+    group: "{{ bind_group }}"
+    mode:  0750
+  with_items:
+      - ddns-host-add
+      - ddns-host-del
+  when: bind_ddns_scripts
+
+- name: RedHat | Deploy key configuration
+  template:
+    src:   "etc/named/named.conf.key.j2"
+    dest:  "{{ bind_conf_dir }}/named.conf.key"
+    owner: root
+    group: "{{ bind_group }}"
+    mode:  0640
+  when: bind_ddns_enable == true
+  notify: "Restart Bind"
+
+- name: RedHat | Deploy zone configuration
+  include: "bind-zone.yml key={{ zn.key }} zone={{ zn.value }}"
+  with_dict: "{{ bind_zone | default({}) }}"
+  loop_control:
+    loop_var: zn
+
+- name: RedHat | Set cache directory permission for ddns
+  file:
+    path: "{{ bind_cache_dir }}"
+    mode: "g+w"
+  when: bind_ddns_enable
+
+- stat:
+    path: "{{ bind_conf_dir }}/named.conf.local"
+  register: zonefile
+
+- name: RedHat | Service Bind
+  service:
+    name:    "{{bind_service_name}}"
+    state:   started
+    enabled: yes
+
+- name: RedHat | Setting firewall rules
+  firewalld:
+    port:      "{{item}}"
+    permanent: true
+    state:     enabled
+    immediate: yes
+  with_items:
+    - 53/tcp
+    - 53/udp

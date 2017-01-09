@@ -1,0 +1,12 @@
+---
+- name: Ajout des user 
+  hosts: demo 
+  roles:
+    - role: basic-server
+      users_groups:
+        - name: admin
+      users:
+        - login: hekou
+          groups: admin
+          sshkeys:
+             - "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDMKI3QGYeCGWP6xVS6dVr4ORl/nfitV3UraAC1+NNZ5I5gEufxvtgniaw6Wt2fJ1XV6sUGhYC7FYq8gU2W8y0J11/zyhdHd3iHf8WarjtQ2je4LMDchzIadGz3SWdMML8uW3WeVurIwSYfccWjFMN9InxUtirI1xhYNjXjemnFbPrXFCROeyq/rn/ohJZBfkoezZHlECBSdH1mcQ7rKKb8R6Q8cQuuRI5y5IQ6K98Z1+RMhNQ6Y1Xk88AL9JBKvNaa7xO+xW50tqTqAuNonvGfSITo7nJ6vxHFkqEtzsXmYKFYbDg7TDvdWz6ZXCV/a+0cAXoKFYkvUg+g4vFiTDZb hermann.kouassi@smile.ci"

@@ -1,0 +1,124 @@
+# ACL autorization
+## Client subnet
+acl clients {
+    127.0.0.1;
+    10.0.0.0/8;
+    172.16.0.0/12;
+    192.168.0.0/16;
+};
+
+# Bind logging configuration
+logging {
+    channel "default_file" {
+        file "{{bind_log_dir}}/named.log" versions 3 size 1g;
+        severity dynamic;
+        print-time yes;
+        print-category yes;
+        print-severity yes;
+    };
+
+    channel "queries_file" {
+        file "{{bind_log_dir}}/queries.log" versions 3 size 1g;
+        severity info;
+        print-time yes;
+        print-category yes;
+        print-severity yes;
+    };
+
+    channel "security_file" {
+        file "{{bind_log_dir}}/security.log" versions 3 size 512m;
+        severity dynamic;
+        print-time yes;
+        print-category yes;
+        print-severity yes;
+    };
+
+    channel "rpz_file" {
+        file "{{bind_log_dir}}/rpz.log" versions 3 size 30m;
+        severity dynamic;
+        print-time yes;
+        print-category yes;
+        print-severity yes;
+    };
+
+    category security   { "security_file"; };
+    category queries    { "queries_file"; };
+    category default    { "default_file"; };
+    category general    { "default_file"; };
+    category rpz        { "rpz_file"; };
+};
+
+
+# Bind global options configuration
+options {
+    version "{{bind_version}}";
+
+    # Principaux fichiers et repertoires
+    directory               "{{bind_cache_dir}}";
+    dump-file               "{{bind_cache_dir}}/data/named_cache.db";
+    statistics-file         "{{bind_cache_dir}}/data/named.stats";
+    memstatistics-file      "{{bind_cache_dir}}/data/named_mem.stats";
+    bindkeys-file           "/etc/named.iscdlv.key";
+    managed-keys-directory  "{{bind_cache_dir}}/dynamic";
+    pid-file                "{{bind_run_dir}}/named.pid";
+    session-keyfile         "{{bind_run_dir}}/session.key";
+
+    # Interface d'ecoute
+    listen-on port 53 { {% for item in bind_address -%}{{ item }}; {% endfor -%} };
+    listen-on-v6 port 53 { none; };
+    #query-source address * port 53;
+    interface-interval 1;
+
+    # Activation de DNSSEC
+    dnssec-enable {% if bind_dnssec_enable -%}yes{% else %}no{% endif -%};
+    dnssec-validation {% if bind_dnssec_enable -%}yes{% else %}no{% endif -%};
+
+    # Conformite a la RFC1035
+    auth-nxdomain no;
+    # Desactivation des notifications sur un resolveur
+    notify {% if bind_allow_notify[0] != 'none' -%}yes{% else %}no{% endif -%};
+    # Authorisation des requetes recursives (serveur resolveur)
+    recursion yes;
+
+    # Liste des hotes autorises a effectuer des requetes recursives
+    allow-recursion { clients; };
+    # Liste des hotes autorises a interroger le serveur
+    allow-query { clients; };
+    # Liste des hotes autorises a interroger le cache du serveur
+    allow-query-cache { clients; };
+    # Liste des hotes vers lesquels le transfert de zone est autorise
+    allow-transfer { {% for item in bind_allow_transfert -%}{{ item }}; {% endfor -%} };
+    # Notify lors du changement de zone
+    allow-notify { {% for item in bind_allow_notify -%}{{ item }}; {% endfor -%} };
+
+    # Nombre maximum de connexions TCP concurrentes acceptees
+    tcp-clients 5000;
+    # Nombre maximum de requetes recursives concurrentes acceptees (20ko de memoire par client)
+    recursive-clients 20000;
+    # Nombre maximum de clients en attente de reponse pour une meme requete
+    clients-per-query 100;
+    # Limite haute du nombre maximum de clients en attente de reponse pour une meme requete
+    max-clients-per-query 500;
+    # Ne retourne les informations AUTHORITY et ADDITIONAL lors de la reponse
+    # que lorsque cela est necessaire. Permet d'ameliorer les performances
+    minimal-responses yes;
+
+    # Temps de conservation des reponses negatives en cache (1h au lieu de 3h par defaut)
+    max-ncache-ttl 3600;
+    # Taille du cache. 0 (valeur par defaut) signifie que bind purge les donnees du cache
+    # que lorsque le TTL d'un enregistrement expire. Sinon, il supprime les donnees du cache
+    # en utilisant l'algorithme LRU
+    max-cache-size 4000M;
+
+    # Taille maximum des paquets UDP
+    #edns yes;
+    edns-udp-size 4096;
+    max-udp-size 4096;
+
+    # Enable RPZ
+    //response-policy { zone "dev.null.rpz"; };
+};
+
+#controls {
+#   inet 127.0.0.1 allow { localhost; } keys { "rndc-key"; };
+#};

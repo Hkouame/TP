@@ -1,0 +1,12 @@
+---
+# vars file for bacula
+# Global bacula variables
+bacula_conf_dir: /etc/bacula
+
+# FD variables
+bacula_fd_package: bacula-client
+bacula_fd_service: bacula-fd
+bacula_fd_pid_directory: /var/run
+
+# Director variables
+bacula_dir_service: bacula-dir

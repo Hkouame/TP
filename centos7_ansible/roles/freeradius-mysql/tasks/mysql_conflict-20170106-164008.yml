@@ -1,0 +1,48 @@
+---
+- name: mysql | Waiting for database to become available
+  wait_for:
+    port: 3306
+    host: "{{ freerad_db_remote_host }}"
+
+- name: mysql | Init freeradius database on {{ freerad_db_remote_host }}
+  copy:
+    src:  schema.sql
+    dest: /tmp
+  run_once: true
+  delegate_to: "{{ freerad_db_remote_host }}"
+  register: import_schema
+
+- name: mysql | Create database {{ freerad_db_name }}
+  mysql_db:
+    login_user:     "{{ freerad_db_admin_user }}"
+    login_password: "{{ freerad_db_admin_pass }}"
+    login_host:     127.0.0.1
+    name:           "{{ freerad_db_name }}"
+    state:          present
+  run_once: true
+  delegate_to: "{{ freerad_db_remote_host }}"
+
+- name: mysql | Import freeradius database schema
+  mysql_db:
+    login_user:     "{{ freerad_db_admin_user }}"
+    login_password: "{{ freerad_db_admin_pass }}"
+    login_host:     127.0.0.1
+    name:           "{{ freerad_db_name }}"
+    state:          import
+    target:         /tmp/schema.sql
+  run_once: true
+  delegate_to: "{{ freerad_db_remote_host }}"
+  when: import_schema.changed
+
+- name: mysql | Create {{ freerad_db_user}} user and set privileges on {{ freerad_db_name }} database
+  mysql_user:
+    login_user:     "{{ freerad_db_admin_user }}"
+    login_password: "{{ freerad_db_admin_pass }}"
+    login_host:     127.0.0.1
+    name:           "{{ freerad_db_user }}"
+    password:       "{{ freerad_db_pass }}"
+    host:           "%"
+    priv:           "{{ freerad_db_name }}.radpostauth:ALL/{{ freerad_db_name }}.radacct:ALL/{{ freerad_db_name }}.*:SELECT"
+    state:          present
+  run_once: true
+  delegate_to: "{{ freerad_db_remote_host }}"

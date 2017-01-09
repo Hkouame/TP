@@ -1,0 +1,15 @@
+- hosts: all 
+  vars:
+        allow_update_data: 1
+        mysql_databases:
+            first_database:
+                db_name : world
+                collation: utf8_unicode_ci
+                encoding: utf8
+                user: magento
+                password: changethepassword
+                sync_source:
+                    src: world.sql
+                    file: world.sql
+  roles:
+        - role: ansible-mysql-server

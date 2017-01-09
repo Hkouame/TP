@@ -1,0 +1,19 @@
+---
+- name: RedHat | Install epel-release
+  yum:
+    name:  "{{ item }}"
+    state: present
+  with_items: "{{ bacula_fd_dependencies }}"
+
+- name: firewall | Setting firewall rules
+  firewalld:
+    port:      "{{ item }}/tcp"
+    permanent: true
+    state:     enabled
+    immediate: yes
+  with_items:
+    - "{{ bacula_fd_port }}"
+  when: >
+    firewall_type == 'firewalld' and
+    firewall_setup == true and
+    ansible_distribution_version >= '7'

@@ -1,0 +1,110 @@
+Director {
+    Name = {{ bacula_dir_name }}
+    DIRport = {{ bacula_dir_port }}
+    QueryFile = "/etc/bacula/query.sql"
+    WorkingDirectory = "/var/spool/bacula"
+    PidDirectory = "/var/run"
+    Maximum Concurrent Jobs = {{ bacula_dir_max_concurrent_jobs  }} 
+    Password = "{{ bacula_dir_password }}"
+    Messages = Daemon
+    Statistics Retention = 1 year
+}
+
+JobDefs {
+    Name = "DefaultJob"
+    Type = Backup
+    Level = Full
+    FileSet = "Unix Configuration Set"
+    Schedule = "WeeklyCycle"
+    Messages = Standard
+    Pool = WeeklyFilePool
+    Storage = File
+    Priority = 10
+    Write Bootstrap = "/var/spool/bacula/%c.bsr"
+    Spool Data = yes
+   # Accurate = yes
+}
+
+Job {
+    Name = "BackupCatalog"
+    JobDefs = "DefaultJob"
+    Level = Full
+    Client = {{bacula_dir_name}}
+    FileSet = "Catalog"
+    Schedule = "WeeklyCycleAfterBackup"
+    RunBeforeJob = "/etc/bacula/scripts/make_catalog_backup.pl bacula-catalog"
+    RunAfterJob  = "/etc/bacula/scripts/delete_catalog_backup"
+    Write Bootstrap = "/var/spool/bacula/%n.bsr"
+    Priority = 12
+}
+
+Job {
+    Name = "RestoreFiles"
+    Type = Restore
+    Client = {{ bacula_dir_name }}
+    FileSet = "Unix Configuration Set"
+    Storage = File
+    Pool = DailyFilePool
+    Messages = Daemon
+    Where = {{ bacula_dir_restore }}
+}
+
+FileSet {
+    Name = "Unix Configuration Set"
+    Include {
+        Options {
+            signature = MD5
+            compression = GZIP
+        }
+
+        File = /etc
+    }
+}
+
+FileSet {
+    Name = "Catalog"
+    Include {
+        Options {
+            signature = MD5
+            compression = GZIP
+        }
+
+        File = "/var/lib/bacula/bacula.sql"
+    }
+}
+
+Storage {
+    Name = File
+    Address = {{ bacula_sd_address }}
+    SDPort = {{ bacula_sd_port }}
+    Password = "{{ bacula_sd_password }}"
+    Device = FileStorage
+    Media Type = {{ bacula_sd_media_type }}
+}
+
+
+Catalog {
+    Name = MyCatalog
+    dbname = "{{ bacula_db_name}}"
+    dbuser = "{{ bacula_db_user }}"
+    dbpassword = "{{ bacula_db_pass }}"
+}
+
+
+Messages {
+    Name = Daemon
+    Console = all, !skipped, !saved
+    Syslog = all, !skipped
+}
+
+
+Messages {
+    Name = Standard
+    Console = all, !skipped, !saved
+    Syslog = all, !skipped
+}
+
+@/etc/bacula/pool.conf
+@/etc/bacula/schedule.conf
+@|"sh -c 'for f in /etc/bacula/client.d/*.conf ; do echo @${f} ; done'"
+

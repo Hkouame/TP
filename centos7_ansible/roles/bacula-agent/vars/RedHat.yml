@@ -1,0 +1,4 @@
+bacula_fd_working_directory: /var/spool/bacula
+
+bacula_fd_dependencies:
+ - epel-release

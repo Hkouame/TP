@@ -1,0 +1,33 @@
+Storage {                             # definition of myself
+  Name = {{ bacula_sd_name }}
+  SDPort = {{ bacula_sd_port }}                 # Director's port
+  WorkingDirectory = "/var/spool/bacula"
+  Pid Directory = "/var/run"
+  Maximum Concurrent Jobs = {{ bacula_sd_max_concurrent_jobs }}
+  SDAddress = {{ bacula_sd_address }}
+}
+
+Director {
+  Name = {{ bacula_dir_name }}
+  Password = "{{ bacula_sd_password }}"
+}
+
+Device {
+  Name = FileStorage
+  Media Type = {{ bacula_sd_media_type }}
+  Archive Device = {{ bacula_sd_archive_device }}
+  Maximum Concurrent Jobs = {{ bacula_sd_max_concurrent_jobs  }}
+  LabelMedia = yes
+  Random Access = yes
+  AutomaticMount = yes
+  RemovableMedia = no
+  AlwaysOpen = no
+  Requires Mount = no
+  Maximum Network Buffer Size = 32768
+  Maximum Spool Size = 15gb
+}
+
+Messages {
+  Name = Standard
+  director = {{ bacula_dir_name }} = all
+}

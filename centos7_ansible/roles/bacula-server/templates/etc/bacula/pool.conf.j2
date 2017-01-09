@@ -1,0 +1,44 @@
+Counter {
+    Name = dc
+    Minimum = 1
+    Maximum = {{ bacula_daily_file_retention }}
+    Catalog = MyCatalog
+}
+
+Counter {
+    Name = wc
+    Minimum = 1
+    Maximum = {{ bacula_weekly_file_retention }}
+    Catalog = MyCatalog
+}
+
+Pool {
+    Name = DailyFilePool
+    Pool Type = Backup
+    Recycle = yes
+    AutoPrune = yes
+    File Retention = {{ bacula_daily_file_retention }} days
+    Job Retention = {{ bacula_daily_job_retention }} days 
+    Volume Retention = {{ bacula_daily_volume_retention }} days
+    Volume Use Duration = {{ bacula_daily_volume_use_duration }} # after the first write
+    Action on Purge = Truncate
+    LabelFormat = "Daily-${dc+}"
+}
+
+Pool {
+    Name = WeeklyFilePool
+    Pool Type = Backup
+    Recycle = yes
+    AutoPrune = yes
+    File Retention = {{ bacula_weekly_file_retention }} days
+    Job Retention = {{ bacula_weekly_job_retention }} days
+    Volume Retention = {{ bacula_weekly_volume_retention }} days
+    Volume Use Duration = {{ bacula_weekly_volume_use_duration }} # after the first write
+    Action on Purge = Truncate
+    LabelFormat = "Weekly-${wc+}"
+}
+
+Pool {
+    Name = Scratch
+    Pool Type = Backup
+}

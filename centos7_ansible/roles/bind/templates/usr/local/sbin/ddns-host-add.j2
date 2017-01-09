@@ -1,0 +1,36 @@
+#!/bin/bash
+
+function usage {
+  exec >&2
+  echo "usage: $0 hostname ip_addr"
+  exit 1
+}
+
+# Parse arguments
+dnsserver=127.0.0.1
+nsupdatekey="{{ bind_conf_dir }}/K{{ bind_ddns_key_name }}.*.key"
+ttl=14400
+
+# Sanity check vars
+if [ "$#" -ne 2 ]; then
+  usage
+else
+  hostname=$1
+  ip_address=$2
+fi
+
+ip_rev=$(echo $ip_address | sed -r 's/([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3}).([0-9]{1,3})/\4.\3.\2.\1/')
+
+# Build nsupdate command
+cmd_stack=""
+
+# Always specify DNS server for sanity
+cmd_stack+=$(echo "server $dnsserver\n")
+cmd_stack+=$(echo "update add $hostname $ttl A $ip_address\n")
+cmd_stack+=$(echo "send\n")
+cmd_stack+=$(echo "update add ${ip_rev}.in-addr.arpa $ttl PTR ${hostname}\n")
+cmd_stack+=$(echo "send\n")
+
+
+# Execute nsupdate
+echo -e "${cmd_stack}" | nsupdate -v -k $nsupdatekey 2>&1

@@ -1,0 +1,8 @@
+---
+- name: RedHat | Setting firewall rules
+  firewalld:
+    port:      161/udp
+    permanent: true
+    state:     enabled
+    immediate: yes
+  when: ansible_distribution_version >= '7'

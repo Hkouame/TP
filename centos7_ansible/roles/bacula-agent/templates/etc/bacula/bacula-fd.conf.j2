@@ -1,0 +1,18 @@
+Director {
+    Name = {{ bacula_dir_name }}
+    Password = "{{ bacula_fd_password }}"
+}
+
+FileDaemon {                          
+    Name = {{ bacula_fd_name }}
+    FDport = {{ bacula_fd_port }}
+    WorkingDirectory = {{ bacula_fd_working_directory }}
+    Pid Directory = {{ bacula_fd_pid_directory }}
+    Maximum Concurrent Jobs = {{ bacula_fd_max_concurrent_job }}
+    Heartbeat Interval = {{ bacula_fd_heartbeat_interval }}
+}
+
+Messages {
+    Name = Standard
+    Director = {{ bacula_dir_name }} = all, !skipped, !restored
+}

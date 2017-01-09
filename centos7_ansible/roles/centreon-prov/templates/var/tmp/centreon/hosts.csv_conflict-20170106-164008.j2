@@ -1,0 +1,1 @@
+{{ ansible_fqdn }};{{ ansible_default_ipv4.address}};{{ snmp_community|default() }};{{ snmp_version|default() }};{%- for tpl in centreon_host_tpl %}{% if tpl.name in group_names %}{{ tpl.template }}|{% endif %}{% endfor %};{%- for grp in centreon_host_grp %}{% if grp.name in group_names %}{{ grp.template }}|{% endif %}{% endfor %};{{ centreon_poller }}

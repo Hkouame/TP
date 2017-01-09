@@ -1,0 +1,14 @@
+---
+- name: Redhat | Ensure firewalld is installed
+  package:
+    name: firewalld
+    state: present
+  when: ansible_distribution_version >= '7' 
+
+- name: RedHat | start and enable firewalld
+  service:
+    name: firewalld
+    state: started
+    enabled: yes
+  when: manage_firewalld == true and ansible_distribution_version >= '7'
+

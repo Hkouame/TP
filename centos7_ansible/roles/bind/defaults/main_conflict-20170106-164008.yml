@@ -1,0 +1,29 @@
+---
+# defaults file for bind
+bind_version: "bind"
+bind_address: [ '127.0.0.1', '192.168.0.0/16', '172.16.0.0/12', '10.0.0.0/8' ]
+#bind_deploy_zone_example: false
+#bind_deploy_zone_name: "labs.lan"
+
+# Bind global configuration parameter
+bind_dnssec_enable: false
+bind_allow_transfert: [ 'none' ]
+bind_allow_notify: "{{ bind_allow_transfert }}"
+
+# Bind DDNS variables
+bind_ddns_enable: false
+bind_ddns_key_name: "domain.lan"
+bind_ddns_scripts: "{{ bind_ddns_enable }}"
+
+# Bind zone variables
+bind_zone_conf_manage: false
+#bind_zone:
+#  rp.smile.lan:
+#    subnet: 10.2.1.0
+#    servers: [ '10.1.1.2', '10.1.1.3' ]
+#  ovh.smile.lan:
+#    subnet: 10.2.1.0
+#    servers: [ '10.1.1.2', '10.1.1.3' ]
+#  ovh.swan.lan:
+#    subnet: 10.2.1.0
+#    servers: [ '10.1.1.2', '10.1.1.3' ]

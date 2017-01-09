@@ -1,0 +1,8 @@
+---
+#
+# Configuration file for 'nsupdate' dns provider
+#
+
+:dns_key: /etc/foreman-proxy/dns-foreman.key
+# use this setting if you are managing a dns server which is not localhost though this proxy
+:dns_server: {{ ansible_default_ipv4.address }}

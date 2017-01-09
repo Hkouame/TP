@@ -1,0 +1,44 @@
+---
+- name: bind-zone | Deploy zone => {{ key }}
+  set_fact:
+    revsubnet: "{{ zone.subnet.split('.')[2]+'.'+zone.subnet.split('.')[1]+'.'+zone.subnet.split('.')[0] }}"
+
+# Set server to forwarder by default
+- set_fact:
+    zone_type: forward
+
+# If first address in zone servers lists is mine, I'm the master !
+- set_fact:
+    zone_type: master
+  when: zone.servers[0] in ansible_all_ipv4_addresses
+
+# If second address in zone servers lists is mine, I'm the slave !
+- set_fact:
+    zone_type: slave
+  when: zone.servers[1] in ansible_all_ipv4_addresses
+
+- name: bind-zone | Deploy zone configuration {{ key }}
+  template:
+    src:   etc/named/named.conf.zone.j2
+    dest:  "{{ bind_conf_dir }}/zone/{{ key }}.conf"
+    owner: "{{ bind_user }}"
+    group: "{{ bind_group }}"
+    mode:  0644
+    force: "{{ bind_zone_conf_manage }}"
+  notify: "Restart Bind"
+
+- name: bind-zone | Deploy zone file {{ key }}
+  template:
+    src:   "var/named/{{ item.src }}"
+    dest:  "{{bind_cache_dir}}/{{ item.dest }}"
+    owner: "{{ bind_user }}"
+    group: "{{ bind_group }}"
+    mode:  0644
+    force: no
+  with_items:
+    - src:  db.domain.lan.j2
+      dest: "db.{{ key }}"
+    - src:  db.reverse.j2
+      dest: "db.{{ revsubnet }}"
+  when: zone_type == "master"
+  notify: "Restart Bind"

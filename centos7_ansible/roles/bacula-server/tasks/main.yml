@@ -1,0 +1,78 @@
+---
+# include per-environment variables
+- include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+        - '{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml'           # CentOS-6.5
+        - '{{ ansible_os_family }}-{{ ansible_distribution_version }}.yml'              # RedHat-6.5
+        - '{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml'     # CentOS-6
+        - '{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml'        # RedHat-6
+        - '{{ ansible_distribution }}.yml'                                              # CentOS
+        - '{{ ansible_os_family }}.yml'                                                 # RedHat
+        - 'main.yml'
+      paths: '../vars'
+
+- include: '{{ ansible_os_family }}.yml'
+
+- name: main | Server installation
+  package:
+    name:  "{{ item }}"
+    state: present
+  with_items: "{{ bacula_packages }}"
+
+- name: main | Create storage pool directory
+  file:
+    path:  "{{ bacula_sd_archive_device }}"
+    state: directory
+    owner: bacula
+    group: bacula
+    mode:  0770
+    recurse: yes
+
+# Bug in ansible version <= 2.2.0. Decomment when new version 2.2.1 will be available
+#- name: main | Restore context on storage pool directory
+#  sefcontext:
+#    target: "{{ bacula_sd_archive_device }}(/.*)?"
+#    setype: bacula_store_t
+#  when: ansible_os_family == "RedHat" and ansible_selinux.status == "enabled"
+
+- name: main | Create client configuration directory
+  file:
+    path:  "{{ bacula_conf_dir }}/client.d"
+    state: directory
+    owner: root
+    group: root
+    mode:  0750
+
+- name: main | Deploy bacula client default configuration file
+  template:
+    src:     etc/bacula/client.d/bacula.conf
+    dest:    "{{ bacula_conf_dir }}/client.d/{{ bacula_dir_name }}.conf"
+    owner:   root
+    group:   root
+    mode:    0640
+    force: false
+  notify: Restart bacula services
+
+- name: main | Deploy bacula configuration
+  template:
+    src:  "etc/bacula/{{ item }}.j2"
+    dest: "{{ bacula_conf_dir }}/{{ item }}"
+  with_items:
+    - bacula-dir.conf
+    - bacula-sd.conf
+    - bconsole.conf
+    - bat.conf
+    - pool.conf
+    - schedule.conf
+  notify: Restart bacula services
+
+- include: mariadb.yml
+  when: bacula_db_driver == "mysql"
+
+- name: main | Enable services on boot
+  service:
+    name:    "{{ item }}"
+    state:   started
+    enabled: yes
+  with_items: "{{ bacula_services }}"

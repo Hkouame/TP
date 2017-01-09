@@ -1,0 +1,31 @@
+basic_packages:
+  - ca-certificates
+  - bash-completion
+  - diffutils
+  - file
+  - iproute
+  - less
+  - lsof
+  - moreutils
+  - psmisc
+  - rsync
+  - screen
+  - strace
+  - sudo
+  - tcpdump
+  - nmap-ncat
+  - unzip
+  - vim
+  - dstat
+
+host_packages:
+  - ntp
+  - acpid
+  - tcpdump
+  - iotop
+  - dstat
+
+remove_packages:
+  - locate
+  - mlocate
+  - nano

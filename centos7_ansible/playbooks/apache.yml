@@ -1,0 +1,7 @@
+---
+
+- name: Apache
+  hosts: demo 
+  roles:
+    - role: basicserver
+    - role: apache

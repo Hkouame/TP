@@ -1,0 +1,11 @@
+Schedule {
+    Name = "WeeklyCycle"
+    Run = Pool=WeeklyFilePool Full {{bacula_schedule_full}}
+    Run = Pool=DailyFilePool Differential {{bacula_schedule_diff}}
+}
+
+Schedule {
+    Name = "WeeklyCycleAfterBackup"
+    Run = Pool=WeeklyFilePool Full {{bacula_schedule_full}}
+    Run = Pool=DailyFilePool Full {{bacula_schedule_full}}
+}

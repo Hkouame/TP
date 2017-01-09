@@ -1,0 +1,15 @@
+
+######################
+# smile prompt: user@host:dir$
+# Define graphic term title bar
+case $TERM in
+    xterm*|rxvt)
+        TITLEBAR='\[\e]0;\u@\h:\w\a\]';
+        ;;
+    *)
+        TITLEBAR="";
+        ;;
+esac
+
+# Red regular prompt
+export PS1=$TITLEBAR'\[\e[0;31m\]\u@\h:\w\[\e[$(($??7:0));37m\]\$\[\e[0;0m\] '

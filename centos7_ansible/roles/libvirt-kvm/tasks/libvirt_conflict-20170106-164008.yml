@@ -1,0 +1,50 @@
+---
+- name: libvirt | Install Libvirt
+  package:
+    name:  "{{ item }}"
+    state: installed
+  with_items:
+    - "{{ libvirt_packages }}"
+
+- name: libvirt | Start Libvirt
+  service:
+    name:    "{{ libvirt_service }}"
+    state:   started
+    enabled: yes
+
+- name: libvirt | Deploy libvirt configuration
+  lineinfile:
+    dest:   /etc/libvirt/libvirt.conf
+    regexp: '^uri_default ='
+    line:   'uri_default = "qemu:///system"'
+
+- name: libvirt | Deploy backup and restore script
+  copy:
+    src:   "usr/local/sbin/{{ item }}"
+    dest:  "{{ libvirt_script_dir }}"
+    owner: root
+    group: root
+    mode:  0755
+  with_items:
+    - libvirt-vm-backup
+    - libvirt-vm-backup-all
+    - libvirt-vm-restore
+
+- name: libvirt | Create libvirt tempory directory
+  file:
+    path:    "{{ libvirt_tmp_dir }}"
+    state:   directory
+    recurse: true
+  when: libvirt_network is defined
+
+- name: libvirt | Deploy virtual network configuration
+  include: "libvirt-vnet.yml libvirt_network={{ item }}"
+  with_items:
+    - "{{ libvirt_networks | default([]) }}"
+  tags: config
+
+- name: libvirt | Deploy pool configuration
+  include: "libvirt-pool.yml libvirt_pool={{ item }}"
+  with_items:
+    - "{{ libvirt_pools | default([]) }}"
+  tags: config

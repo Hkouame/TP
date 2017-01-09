@@ -1,0 +1,27 @@
+//
+// named.conf
+//
+// Provided by Red Hat bind package to configure the ISC BIND named(8) DNS
+// server as a caching only nameserver (as a localhost DNS resolver only).
+//
+// See /usr/share/doc/bind*/sample/ for example named configuration files.
+//
+
+zone "." IN {
+	type hint;
+	file "named.ca";
+};
+
+include "/etc/named.root.key";
+include "/etc/named.rfc1912.zones";
+include "{{ bind_conf_dir }}/named.conf.options";
+{% if bind_ddns_enable %}
+include "{{ bind_conf_dir }}/named.conf.key";
+{% endif %}
+
+// Include configuration zone file
+{% if bind_zone_conf_manage and bind_zone is defined %}
+{% for key, value in bind_zone.iteritems() %}
+include "{{ bind_conf_dir }}/zone/{{ key }}.conf";
+{% endfor %}
+{% endif %}

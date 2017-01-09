@@ -1,0 +1,17 @@
+---
+rootpromptcolor: red
+userpromptcolor: green
+promptbold: "{{ ansible_virtualization_role==\"host\" }}"
+
+generate_hosts_from_inventory: true
+main_interface: "{{ ansible_default_ipv4 }}"
+extra_packages: []
+install_sudoers: true
+manage_firewalld: true
+sudo_lines: []
+
+manage_dns: false
+dns_domain: NULL
+dns_search: []
+dns_servers:
+  - 8.8.8.8

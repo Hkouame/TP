@@ -1,0 +1,11 @@
+- name: Install Percona APT key
+  apt_key: data="{{ lookup('file', 'RPM-GPG-KEY-percona') }}" state=present
+  when: ansible_os_family == 'Debian'
+
+- name: Install Percona APT repository
+  apt_repository: repo='deb http://repo.percona.com/apt {{ ansible_distribution_release }} main' state=present
+  when: ansible_os_family == 'Debian'
+
+- name: Install Percona YUM repository
+  yum: name="https://www.percona.com/downloads/percona-release/redhat/0.1-3/percona-release-0.1-3.noarch.rpm" state=present
+  when: ansible_os_family == 'RedHat'

@@ -1,0 +1,16 @@
+---
+- name: Generate configuration
+  command: "{{ centreon_script_dir }}/centreon-host-add {{ centreon_tmp_dir }}/hosts.csv"
+  run_once: true
+  delegate_to: "{{ centreon_server }}"
+
+- name: Deploy configuration
+  command: "{{ centreon_script_dir }}/centreon-poller-reload"
+  run_once: true
+  delegate_to: "{{ centreon_server }}"
+
+- name: Purge temporary directory
+  file:
+    path: "{{ centreon_tmp_dir }}/hosts/{{ ansible_fqdn }}.csv"
+    state: absent
+  delegate_to: "{{ centreon_server }}"

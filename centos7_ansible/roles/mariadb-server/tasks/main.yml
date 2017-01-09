@@ -1,0 +1,19 @@
+# Include per-environment variables
+- include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+        - '{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml'           # CentOS-6.5
+        - '{{ ansible_os_family }}-{{ ansible_distribution_version }}.yml'              # RedHat-6.5
+        - '{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml'     # CentOS-6
+        - '{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml'        # RedHat-6
+        - '{{ ansible_distribution }}.yml'                                              # CentOS
+        - '{{ ansible_os_family }}.yml'                                                 # RedHat
+        - 'default.yml'
+      paths: '../vars'
+
+# MySQL Server install and settings
+- include: install.yml
+
+# Create DBs and user
+- include: dbs.yml
+  when: mysql_databases|length > 0

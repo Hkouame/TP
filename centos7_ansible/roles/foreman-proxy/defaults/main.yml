@@ -1,0 +1,7 @@
+---
+# defaults file for foreman-proxy
+foreman_server: 127.0.0.1
+foreman_proxy_http_port: 8000
+foreman_proxy_dns_enable: true
+foreman_proxy_dns_ttl: 14400
+foreman_proxy_dns_key: /etc/named/named.conf.key

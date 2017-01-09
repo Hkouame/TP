@@ -1,0 +1,13 @@
+- name: RedHat | Install firewalld settings
+  package:
+   name: firewalld
+
+- name: RedHat | Configure firewall rules
+  firewalld:
+   port:      "{{item}}/tcp"
+   state:     enabled
+   permanent: yes
+   immediate: yes
+  with_items:
+   - "{{ bacula_dir_port }}"
+   - "{{ bacula_sd_port }}"

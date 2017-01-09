@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# Backpu dir
+BACKUP_DIR=/srv/backup/libvirt
+
+# Max backup
+MAX_BACKUP=3
+
+# Get current date
+CUR_DATE=`date +%Y-%m-%d`  
+LOG_FILE=$BACKUP_DIR/backup-$CUR_DATE.log
+
+mkdir -p $BACKUP_DIR
+
+log () {
+  echo `date "+%Y-%d-%m %H:%M:%S"`": $1" >> $LOG_FILE
+}
+
+
+for vm in `virsh list | awk '{ print $2 }' | grep -v Name | grep -v Nom | grep -ve '^$'`
+do 
+  log "Launching backup of $vm"
+  /usr/local/sbin/libvirt-vm-backup $BACKUP_DIR $vm $MAX_BACKUP
+done
+

@@ -1,0 +1,52 @@
+" always set autoindenting off
+set noautoindent
+
+" tabulation and indentation : tabstop of 4, and expand tabs
+:set ts=4
+:set sw=4
+:set et
+
+" pas de formatage
+set paste
+
+" do not restore screen
+set t_ti= t_te=
+
+" colorisation
+syn on
+set bg=dark
+set hlsearch
+
+" Better colors for dark backgrounds
+hi comment             ctermfg=yellow
+hi Special             ctermfg=lightblue
+hi string              ctermfg=grey
+
+" Nice shortcut to comment/uncomment (automagic way !)
+" usage : go to visual mode (ESC V),
+" select lines to comment (arrow keys, mouse, ou /foobar) then press C.
+" Same way to uncomment, except with U instead of C.
+au BufRead * vmap C :s!^!# !<CR>
+au BufRead * vmap U :s!^# !!<CR>
+augroup filename
+  au BufRead *.sql vmap C :s!^!-- !<CR>
+  au BufRead *.sql vmap U :s!^-- !!<CR>
+  au BufRead *.php vmap C :s!^!// !<CR>
+  au BufRead *.php vmap U :s!^// !!<CR>
+  au BufRead *.c vmap C :s!^!// !<CR>
+  au BufRead *.c vmap U :s!^// !!<CR>
+  au BufRead *.js vmap C :s!^!// !<CR>
+  au BufRead *.js vmap U :s!^// !!<CR>
+  au BufRead *.tex vmap C :s!^!% !<CR>
+  au BufRead *.tex vmap U :s!^% !!<CR>
+augroup END
+
+" Colorize files in /etc/apache2/ sub-directories, 
+" as they are Apache configuration too
+augroup filename
+  au BufRead /etc/apache/conf.d/* set filetype=apache
+  au BufRead /etc/apache2/conf.d/* set filetype=apache
+  au BufRead /etc/apache2/sites*/* set filetype=apache
+  au BufRead /etc/apache2/mod*/* set filetype=apache
+augroup end
+

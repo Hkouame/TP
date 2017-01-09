@@ -1,0 +1,56 @@
+{% if bind_zone_conf_manage == true -%}
+##
+## WARNING: File maintained by Ansible. Do not edit !
+##
+
+{% endif -%}
+#
+# Domain {{ key }}
+#
+zone "{{ key }}." {
+{% if zone_type == "master" %}
+    type master;
+    file "db.{{ key }}";
+    allow-query { any; };
+{% if bind_ddns_enable == true %}
+    allow-update { key "{{ bind_ddns_key_name }}"; };
+{% endif %}
+{% endif -%}
+
+{% if zone_type == "slave" %}
+    type slave;
+    file "db.{{ key }}";
+    allow-query { any; };
+    masters { {% for srv in zone.servers -%}{% if srv != ansible_default_ipv4.address %}{{ srv }}; {% endif %}{% endfor %}};
+{% endif -%}
+
+{% if zone_type == "forward" %}
+    type forward;
+    forward only;
+    forwarders { {% for srv in zone.servers -%}{{ srv }}; {% endfor %}};
+{% endif -%}
+};
+
+zone "{{ revsubnet }}.in-addr.arpa." {
+{% if zone_type == "master" %}
+    type master;
+    file "db.{{ revsubnet }}";
+    allow-query { any; };
+{% if bind_ddns_enable == true %}
+    allow-update { key "{{ bind_ddns_key_name }}"; };
+{% endif %}
+{% endif -%}
+
+{% if zone_type == "slave" %}
+    type slave;
+    file "db.{{ revsubnet }}";
+    allow-query { any; };
+    masters { {% for srv in zone.servers -%}{% if srv != ansible_default_ipv4.address %}{{ srv }}; {% endif %}{% endfor %}};
+{% endif -%}
+
+{% if zone_type == "forward" %}
+    type forward;
+    forward only;
+    forwarders { {% for srv in zone.servers -%}{{ srv }}; {% endfor %}};
+{% endif -%}
+};

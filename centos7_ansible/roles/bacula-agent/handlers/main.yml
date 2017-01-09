@@ -1,0 +1,13 @@
+---
+# handlers file for bacula
+- name: Restart bacula-fd
+  service:
+    name:  "{{ bacula_fd_service }}"
+    state: restarted
+
+- name: Restart bacula-dir
+  service:
+    name:  "{{ bacula_dir_service }}"
+    state: restarted
+  delegate_to: "{{ bacula_dir_host }}"
+  run_once: true

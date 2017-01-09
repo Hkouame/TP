@@ -1,0 +1,138 @@
+---
+# Include per-environment variables
+- include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+        - '{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml'           # CentOS-6.5
+        - '{{ ansible_os_family }}-{{ ansible_distribution_version }}.yml'              # RedHat-6.5
+        - '{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml'     # CentOS-6
+        - '{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml'        # RedHat-6
+        - '{{ ansible_distribution }}.yml'                                              # CentOS
+        - '{{ ansible_os_family }}.yml'                                                 # RedHat
+        - 'main.yml'
+      paths: '../vars'
+
+- name: main | Deploy resolv.conf
+  tags: deploy_dns
+  template:
+    src: etc.resolv.conf.j2
+    dest: /etc/resolv.conf
+  when: manage_dns == True
+
+- include: "{{ ansible_os_family }}.yml"
+
+- name: main | Create .bashrc.d directories
+  file:
+    path: "{{ item }}"
+    state: directory
+  with_items:
+    - /root/.bashrc.d
+    - /etc/bash.bashrc.d
+
+- name: main | Copy configuration bashrc templates
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  with_items:
+    - src: root.bashrc.d.default.j2
+      dest: /root/.bashrc.d/default
+    - src: user.bashrc.d.default.j2
+      dest: /etc/bash.bashrc.d/default
+
+- name: main | Add source .bashrc.d in bashrc
+  lineinfile:
+    dest:   "{{ item.conf }}"
+    regexp: '-x {{ item.dir_d }}'
+    line:   '[[ -x {{ item.dir_d }} ]] && for file in `ls {{ item.dir_d }}/* 2>/dev/null`; do source $file; done'
+  with_items:
+    - conf: /root/.bashrc
+      dir_d: ~/.bashrc.d
+    - conf: /etc/bashrc
+      dir_d: /etc/bash.bashrc.d
+
+- include: generate_hosts.yml
+  when: generate_hosts_from_inventory == true
+
+- name: main | Install extra packages
+  package:
+    name: "{{ item }}"
+    state: installed
+  with_items:
+    - "{{ extra_packages }}"
+  when: extra_packages
+
+- name: main | Install basic packages
+  package:
+    name: "{{ item }}"
+    state: installed
+  with_items:
+    - "{{ basic_packages }}"
+
+- name: main | Install packages for hosts
+  package:
+    name:  "{{ item }}"
+    state: installed
+  when: ansible_virtualization_role == "host"
+  with_items:
+    - "{{ host_packages }}"
+
+- name: main | Remove unwanted packages
+  package:
+    name:  "{{ item }}"
+    state: absent
+  with_items:
+    - "{{ remove_packages }}"
+
+- name: main | Setup sudoers
+  template:
+    src: etc.sudoers.d.default.j2
+    dest: /etc/sudoers.d/default
+  when: install_sudoers
+
+- name: main | Create groups
+  group:
+    name: "{{ item.name }}"
+    state: "{{ item.state|default('present') }}"
+  tags: create_groups
+  with_items:
+    - "{{ users_groups|default([]) }}"
+
+- name: main | Create users
+  user:
+    name: "{{ item.login }}"
+    group: "{{ item.group|default(omit) }}"
+    groups: "{{ item.groups|default(omit) }}"
+    state: "{{ item.state|default('present') }}"
+    force: yes
+    remove: yes
+  tags: create_users
+  with_items:
+    - "{{ users|default([]) }}"
+
+- name: main | Add ssh users keys
+  authorized_key:
+      user: "{{ item.0.login }}"
+      state: "{{ item.0.state| default('present') }}"
+      key: "{{ item.1 }}"
+  with_subelements:
+    - "{{ users|default([]) }}"
+    - "sshkeys"
+  tags: sshkeys
+  ignore_errors: yes
+
+- name: main | Copy custom profile
+  template:
+    src: "etc.profile.d.custom.sh"
+    dest: /etc/profile.d/custom.sh
+  when: "profiled_template is defined"
+
+- name: main | Change root gecos
+  user:
+    name:    root
+    comment: "root-{{ ansible_hostname }}"
+
+- name: main | Change root password
+  user:
+    name:     root
+    password: "{{ root_password }}"
+  when: root_password is defined

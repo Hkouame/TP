@@ -1,0 +1,198 @@
+---
+
+# Install MySQL if not yet installed
+
+- include: percona-repo.yml
+  when: mysql_flavor == "percona"
+
+- name: Install MySQL using APT
+  apt:
+    name: "{{item}}"
+    state: "present"
+  with_items: '{{ mysql_packages }}'
+  register: mysql_apt_installation
+  when: ansible_os_family == "Debian"
+  tags:
+    - install
+
+- name: Install MySQL using YUM
+  yum:
+    name: "{{item}}"
+    state: "present"
+  with_items: '{{ mysql_packages }}'
+  register: mysql_yum_installation
+  when: ansible_os_family == "RedHat"
+  tags:
+    - install
+
+- name: Combine A and B variables
+  set_fact:
+    mysql_installation: "{{ mysql_apt_installation if mysql_apt_installation.changed else mysql_yum_installation }}"
+
+- name: Ensure config fragment directory exists
+  file:
+    path: "{{ mysql_config_fragment_dir }}"
+    state: directory
+    owner: root
+    group: root
+  notify:
+    - "Restart MySQL"
+  tags:
+    - install
+
+- name: Ensure slow log directory exists
+  file:
+    path:  "{{ mysql_config_slow_query_log_file | dirname }}"
+    state: directory
+    owner: "{{ mysql_log_owner }}"
+    group: "{{ mysql_log_group }}"
+  tags:
+    - install
+
+- name: Ensure bin log directory exists
+  file:
+    path:  "{{ mysql_config_log_bin | dirname }}"
+    state: directory
+    owner: "{{ mysql_log_owner }}"
+    group: "{{ mysql_log_group }}"
+  when: mysql_use_binlog
+  tags:
+    - install
+
+- name: Ensure config file includes fragment directory
+  lineinfile:
+    dest:   "{{ mysql_config_file }}"
+    line:   "!includedir {{ mysql_config_fragment_dir }}"
+    regexp: '^!includedir'
+  notify:
+    - "Restart MySQL"
+  tags:
+    - install
+
+# The following tasks are executed only if we proceed to a new install
+# They are in charge of dangerous settings like ibdata file configuration
+- name: "Stop MySQL"
+  service:
+    name:  "{{ mysql_service_name }}"
+    state: "stopped"
+  when: mysql_installation.changed #Only when installing the server
+  notify:
+    - "Restart MySQL"
+  tags:
+    - install
+
+- name: "Clean ib_logfile* files"
+  shell: "rm -rf /var/lib/mysql/ib_logfile*"
+  when: mysql_installation.changed #Only when installing the server
+  notify:
+    - "Restart MySQL"
+  tags:
+    - install
+
+- name: "Install dangerous settings"
+  template:
+    src:  etc/mysql/conf.d/01-dangerous-settings.cnf.j2
+    dest: "{{ mysql_config_fragment_dir }}/01-dangerous-settings.cnf"
+  when: mysql_installation.changed #Only when installing the server
+  notify:
+    - "Restart MySQL"
+  tags:
+    - install
+
+# Change not dangerous settings
+# Need MySQL to be restarted
+- name: Database configuration
+  template:
+    src:  etc/mysql/conf.d/02-dynamic-settings.cnf.j2
+    dest: "{{ mysql_config_fragment_dir }}/02-dynamic-settings.cnf"
+  notify:
+    - "Restart MySQL"
+  tags:
+    - install
+    - update_config
+
+# Make sure MySQL is running before appending root user
+- name: "Make sure MySQL is running"
+  service:
+    name:    "{{ mysql_service_name }}"
+    state:   started
+    enabled: yes
+  register: mysql_running
+  when: mysql_installation.changed or not manage_by_cluster
+
+- name: "Check if MySQL is running"
+  shell: "systemctl status {{ mysql_service_name }} && echo started || echo stopped"
+  changed_when: false
+  register: mysql_running
+
+- name: "Drop test database"
+  mysql_db:
+    name:  test
+    state: absent
+  tags:
+    - install
+    - update_data
+    - update_config
+     
+- name: "Drop empty MySQL users"
+  mysql_user:
+    name:  ''
+    state: absent
+    host:  "{{ item }}"
+  with_items:
+    - localhost
+    - "{{ ansible_hostname }}"
+  tags:
+    - install
+    - update_data
+    - update_config
+
+- name: "Drop empty MySQL root users"
+  mysql_user:
+    name:  'root'
+    state: absent
+    host:  "{{ ansible_hostname }}"
+    password: ''
+  with_items:
+    - localhost
+    - "{{ ansible_hostname }}"
+  tags:
+    - install
+    - update_data
+    - update_config
+
+# Make sure root user is present
+- name: "Append Root User"
+  mysql_user:
+    name:     root
+    host:     "{{ item }}"
+    password: "{{ mysql_root_password }}"
+  when: "'started' in mysql_running.stdout"
+  with_items:
+    - ::1
+    - 127.0.0.1
+    - localhost
+  tags:
+    - install
+    - update
+    - update_config
+
+# Passwordless root login on the machine
+- name: Copy .my.cnf file with root password credentials
+  template:
+    src:   root/my.cnf.j2
+    dest:  /root/.my.cnf
+    owner: root
+    mode:  0600
+  tags:
+    - install
+    - update
+    - update_config
+
+- name: Setting firewall rules
+  firewalld:
+    port:      3306/tcp
+    permanent: true
+    state:     enabled
+    immediate: yes
+  when: ansible_os_family == "RedHat"

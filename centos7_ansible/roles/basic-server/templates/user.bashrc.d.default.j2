@@ -1,0 +1,58 @@
+# Avoid deletion of screen
+export LESS="-X"
+export PAGER=/usr/bin/less
+export EDITOR=vi
+
+alias ls='/bin/ls -CF'
+alias rm='rm -i'
+alias more='less'
+
+# Define graphic term title bar
+case $TERM in
+    xterm*|rxvt)
+        TITLEBAR='\[\e]0;\h:\w\a\]';
+        ;;
+    *)
+        TITLEBAR="";
+        ;;
+esac
+
+# Bash prompt configuration
+{% if userpromptcolor == "black" %}
+_PC=30
+{% elif userpromptcolor == "red" %}
+_PC=31
+{% elif userpromptcolor == "green" %}
+_PC=32
+{% elif userpromptcolor == "yellow" %}
+_PC=33
+{% elif userpromptcolor == "blue" %}
+_PC=34
+{% elif userpromptcolor == "magenta" %}
+_PC=35
+{% elif userpromptcolor == "cyan" %}
+_PC=36
+{% elif userpromptcolor == "white" %}
+_PC=37
+{# green by default #}
+{% else %}
+_PC=31
+{% endif %}
+{% if promptbold |bool %}
+_PT=1
+{% else %}
+_PT=0
+{% endif %}
+
+export PS1=$TITLEBAR'\[\e['$_PT';'$_PC'm\]\u@\h:\w\[\e[$(($??7:0));37m\]\$\[\e[0;0m\] '
+
+umask 022
+
+export LS_OPTIONS='--color=auto'
+eval `dircolors`
+alias ls='ls $LS_OPTIONS'
+alias ll='ls $LS_OPTIONS -l'
+alias l='ls $LS_OPTIONS -lA'
+
+# Do not clear screen when less finishes, keeps the man on screen
+export LESS='FiX'

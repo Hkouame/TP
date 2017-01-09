@@ -1,0 +1,27 @@
+#!/bin/bash
+
+syntax() {
+	echo "Usage: $0 <domain_xml>"
+	exit 1
+}
+
+DOMAIN_XML=$1
+echo $1
+
+if [ -z "$DOMAIN_XML" ]; then
+	syntax
+fi;
+
+# Define domain
+virsh define $DOMAIN_XML
+
+BACKUP_DIR=`dirname $DOMAIN_XML`
+DOMAIN=`basename $DOMAIN_XML .xml`
+DISKS=`virsh domblklist "$DOMAIN" --details | grep -v hdc | grep ^file | awk '{print $4}'`
+
+for d in $DISKS; do
+    echo "Restore disk $d"
+    cp $BACKUP_DIR/$(basename $d) $d
+done
+echo "VM: $DOMAIN restored"
+

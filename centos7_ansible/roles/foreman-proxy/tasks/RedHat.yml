@@ -1,0 +1,18 @@
+---
+- name: RedHat | Enable Foreman and EPEL repository
+  package:
+    name:  "{{ item }}"
+    state: installed
+    update_cache: yes
+  with_items:
+    - https://yum.theforeman.org/releases/1.13/el7/x86_64/foreman-release.rpm
+    - epel-release
+
+- name: RedHat | Set firewall rules
+  firewalld:
+    port: "{{item}}/tcp"
+    permanent: true
+    state: enabled
+    immediate: yes
+  with_items:
+    - "{{ foreman_proxy_http_port }}"

@@ -1,0 +1,10 @@
+{%- if dns_domain %}
+domain {{ dns_domain }}
+{% endif %}
+{% if dns_search %}
+search {%- for search in dns_search %} {{ search }}{% endfor %}
+{% endif %}
+
+{% for dns in dns_servers %}
+nameserver {{ dns }}
+{% endfor %}

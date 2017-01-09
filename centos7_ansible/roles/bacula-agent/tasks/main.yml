@@ -1,0 +1,52 @@
+---
+# include per-environment variables
+- include_vars: '{{ item }}'
+  with_first_found:
+    - files:
+        - '{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml'           # CentOS-6.5
+        - '{{ ansible_os_family }}-{{ ansible_distribution_version }}.yml'              # RedHat-6.5
+        - '{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.yml'     # CentOS-6
+        - '{{ ansible_os_family }}-{{ ansible_distribution_major_version }}.yml'        # RedHat-6
+        - '{{ ansible_distribution }}.yml'                                              # CentOS
+        - '{{ ansible_os_family }}.yml'                                                 # RedHat
+        - 'main.yml'
+      paths: '../vars'
+
+- include: '{{ ansible_os_family }}.yml'
+
+- name: main | Install bacula file daemon
+  package:
+    name:  "{{ bacula_fd_package }}"
+    state: latest
+
+- name: main | Create restore directory
+  file:
+    path:  "{{ bacula_fd_restore_dir }}"
+    state: directory
+    mode:  0644
+    recurse: yes
+
+- name: main | Create bacula agent config on file daemon
+  template:
+    src:   etc/bacula/bacula-fd.conf.j2
+    dest:  "{{ bacula_conf_dir }}/bacula-fd.conf"
+    owner: root
+    group: root
+    mode:  0640
+  notify: Restart bacula-fd
+
+- name: main | Enable bacula-fd service on boot
+  service:
+    name:    "{{ bacula_fd_service }}"
+    state:   started
+    enabled: yes
+
+- name: main | Create bacula server config on director
+  template:
+    src:   etc/bacula/client.d/client.conf.j2
+    dest:  "{{ bacula_conf_dir }}/client.d/{{ bacula_fd_name }}.conf"
+    owner: root
+    group: root
+    mode:  0640
+  notify: Restart bacula-dir
+  delegate_to: "{{ bacula_dir_host }}"
